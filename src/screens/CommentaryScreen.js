@@ -59,12 +59,12 @@ export default function CommentaryScreen() {
             <View style={[styles.commCard, { backgroundColor: colors.card, borderColor: colors.border }, cardShadow]}>
                 <View style={styles.cardHeaderBox}>
                     <View style={[styles.refBadge, { backgroundColor: colors.highlight }]}>
-                        <Text style={[styles.refText, { color: colors.accent }]}>
+                        <Text selectable={true} style={[styles.refText, { color: colors.accent }]}>
                             {item.book} {item.chapter}:{item.verse}
                         </Text>
                     </View>
                 </View>
-                <Text style={[styles.commBody, { color: colors.text }]}>
+                <Text selectable={true} style={[styles.commBody, { color: colors.text }]}>
                     {item.commentary}
                 </Text>
             </View>

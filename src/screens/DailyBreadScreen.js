@@ -41,7 +41,10 @@ export default function DailyBreadScreen({ route, navigation }) {
                 {/* Verse Card */}
                 <View style={[styles.verseCard, { backgroundColor: colors.card, borderColor: colors.border }, theme === 'light' ? SHADOWS.light : SHADOWS.dark]}>
                     <View style={[styles.accentBar, { backgroundColor: colors.accent }]} />
-                    <Text style={[styles.verseText, { color: colors.text }]}>
+                    <Text
+                        selectable={true}
+                        style={[styles.verseText, { color: colors.text }]}
+                    >
                         "{language === 'en' ? bread.verse : bread.verse_te}"
                     </Text>
                     <Text style={[styles.refText, { color: colors.accent }]}>
@@ -54,7 +57,10 @@ export default function DailyBreadScreen({ route, navigation }) {
                     <Text style={[styles.sectionTitle, { color: colors.accent }]}>
                         {language === 'en' ? 'UNDERSTANDING' : 'అవగాహన'}
                     </Text>
-                    <Text style={[styles.bodyText, { color: colors.text }]}>
+                    <Text
+                        selectable={true}
+                        style={[styles.bodyText, { color: colors.text }]}
+                    >
                         {language === 'en' ? bread.summary_en : bread.summary_te}
                     </Text>
                 </View>
@@ -78,7 +84,10 @@ export default function DailyBreadScreen({ route, navigation }) {
                     <Text style={[styles.sectionTitle, { color: colors.accent, textAlign: 'center' }]}>
                         {language === 'en' ? 'A SHORT PRAYER' : 'చిన్న ప్రార్థన'}
                     </Text>
-                    <Text style={[styles.prayerText, { color: colors.text }]}>
+                    <Text
+                        selectable={true}
+                        style={[styles.prayerText, { color: colors.text }]}
+                    >
                         {language === 'en' ? bread.prayer_en : bread.prayer_te}
                     </Text>
                 </View>

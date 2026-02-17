@@ -39,14 +39,17 @@ export default function SongDetailScreen({ route, navigation }) {
                                 </View>
                             )}
                             <Text style={styles.songSub}>HYMN / SONG</Text>
-                            <Text style={styles.songTitle}>{title}</Text>
+                            <Text selectable={true} style={styles.songTitle}>{title}</Text>
                         </View>
 
                         <View style={styles.lyricsContainer}>
-                            <Text style={[
-                                styles.lyricsText,
-                                language === 'te' && styles.lyricsTelugu
-                            ]}>
+                            <Text
+                                selectable={true}
+                                style={[
+                                    styles.lyricsText,
+                                    language === 'te' && styles.lyricsTelugu
+                                ]}
+                            >
                                 {lyrics}
                             </Text>
                         </View>

@@ -49,7 +49,10 @@ export default function DailyWordModal() {
                     <View style={styles.content}>
                         <Text style={styles.quoteMark}>“</Text>
 
-                        <Text style={[styles.verseText, { color: colors.text }]}>
+                        <Text
+                            selectable={true}
+                            style={[styles.verseText, { color: colors.text }]}
+                        >
                             {language === 'en' ? verse.verse_en : verse.verse_te}
                         </Text>
 

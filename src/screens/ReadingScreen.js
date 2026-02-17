@@ -251,6 +251,7 @@ export default function ReadingScreen({ route }) {
                     </View>
                     <View style={styles.vTextContainer}>
                         <Text
+                            selectable={true}
                             style={[
                                 styles.vPrimaryText,
                                 { color: colors.text },
@@ -263,7 +264,10 @@ export default function ReadingScreen({ route }) {
                             <View style={[styles.dualDivider, { backgroundColor: colors.border }]} />
                         )}
                         {isDualMode && (
-                            <Text style={[styles.vSecondaryText, { color: colors.secondaryText }]}>
+                            <Text
+                                selectable={true}
+                                style={[styles.vSecondaryText, { color: colors.secondaryText }]}
+                            >
                                 {item.secondary}
                             </Text>
                         )}

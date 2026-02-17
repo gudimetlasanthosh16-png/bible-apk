@@ -29,15 +29,18 @@ export default function StoryDetailScreen({ route, navigation }) {
             <ScrollView contentContainerStyle={styles.storyScroll} showsVerticalScrollIndicator={false}>
                 <View style={styles.storyHeaderBox}>
                     <Text style={[styles.storySubLabel, { color: colors.accent }]}>BIBLE STORY FOR KIDS</Text>
-                    <Text style={[styles.storyMainTitle, { color: colors.text }]}>{title}</Text>
+                    <Text selectable={true} style={[styles.storyMainTitle, { color: colors.text }]}>{title}</Text>
                 </View>
 
                 <View style={[styles.storyCard, { backgroundColor: colors.card, borderColor: colors.border }, cardShadow]}>
-                    <Text style={[
-                        styles.storyBody,
-                        { color: colors.text },
-                        language === 'te' && styles.storyTelugu
-                    ]}>
+                    <Text
+                        selectable={true}
+                        style={[
+                            styles.storyBody,
+                            { color: colors.text },
+                            language === 'te' && styles.storyTelugu
+                        ]}
+                    >
                         {content}
                     </Text>
                 </View>
