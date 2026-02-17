@@ -13,6 +13,7 @@ import WallpaperScreen from '../screens/WallpaperScreen';
 import WallpaperCreatorScreen from '../screens/WallpaperCreatorScreen';
 import SearchScreen from '../screens/SearchScreen';
 import DailyBreadScreen from '../screens/DailyBreadScreen';
+import AIChatScreen from '../screens/AIChatScreen';
 
 const Stack = createNativeStackNavigator();
 export const navigationRef = createNavigationContainerRef();
@@ -154,6 +155,11 @@ const MainStack = () => {
                     name="DailyBread"
                     component={DailyBreadScreen}
                     options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                    name="AIChat"
+                    component={AIChatScreen}
+                    options={{ title: 'Divine Assistant' }}
                 />
             </Stack.Navigator>
         </NavigationContainer>
