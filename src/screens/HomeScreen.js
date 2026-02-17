@@ -325,12 +325,7 @@ export default function HomeScreen({ navigation }) {
                                 onPress={() => { setIsMenuVisible(false); navigation.navigate('Wallpaper'); }}
                                 colors={colors}
                             />
-                            <DrawerItem
-                                icon="🤖"
-                                title={language === 'en' ? 'Holy AI' : 'హోలీ AI'}
-                                onPress={() => { setIsMenuVisible(false); navigation.navigate('AIChat'); }}
-                                colors={colors}
-                            />
+
 
                             <View style={[styles.drawerDivider, { backgroundColor: colors.border, marginVertical: 32 }]} />
 
@@ -360,14 +355,7 @@ export default function HomeScreen({ navigation }) {
                 </TouchableOpacity>
             </Modal>
 
-            {/* AI Assistant FAB */}
-            <TouchableOpacity
-                style={[styles.aiFab, { backgroundColor: colors.accent }, SHADOWS.dark]}
-                onPress={() => navigation.navigate('AIChat')}
-                activeOpacity={0.9}
-            >
-                <Text style={{ fontSize: 32 }}>🤖</Text>
-            </TouchableOpacity>
+
         </SafeAreaView>
     );
 }
