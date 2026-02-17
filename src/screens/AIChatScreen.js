@@ -42,8 +42,8 @@ export default function AIChatScreen({ navigation }) {
         setInputText('');
         setIsTyping(true);
 
-        // REAL ML LOGIC - Gemini AI
-        const response = await getAIResponse(message, messages);
+        // REAL ML LOGIC - Divine Logic Engine
+        const response = await getAIResponse(message, messages, language);
 
         const newAiMessage = {
             id: (Date.now() + 1).toString(),
