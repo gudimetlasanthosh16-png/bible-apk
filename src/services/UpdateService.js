@@ -3,7 +3,7 @@ import Constants from 'expo-constants';
 
 // Replace this with your actual JSON file URL (e.g., GitHub Gist, Firebase Storage, or your website)
 // Example JSON content: { "latestVersion": "1.0.1", "updateUrl": "https://example.com/bible.apk", "message": "New features: Background music, more stories!" }
-const UPDATE_CONFIG_URL = 'https://raw.githubusercontent.com/your-username/your-repo/main/update.json';
+const UPDATE_CONFIG_URL = 'https://raw.githubusercontent.com/gudimetlasanthosh16-png/bible-apk/refs/heads/main/update.json';
 
 export const checkForUpdates = async () => {
     try {
