@@ -1,0 +1,24 @@
+const fs = require('fs');
+const commentary = [
+    {
+        "book": "Genesis",
+        "chapter": 1,
+        "verse": 1,
+        "commentary": "In the beginning God created the heaven and the earth. This is the foundation of all religion, that there is a God, a specified Cause of all things. The world didn't happen by chance; it was created by a purposeful God."
+    },
+    {
+        "book": "Genesis",
+        "chapter": 1,
+        "verse": 2,
+        "commentary": "The earth was without form, and void. Chaos preceded order. The Spirit of God moved upon the face of the waters, preparing to bring life and order."
+    },
+    {
+        "book": "John",
+        "chapter": 3,
+        "verse": 16,
+        "commentary": "For God so loved the world. This is the gospel in a nutshell. God's love is the motivation for salvation."
+    }
+];
+
+fs.writeFileSync('assets/data/commentary.json', JSON.stringify(commentary, null, 2));
+console.log('Successfully created commentary.json');

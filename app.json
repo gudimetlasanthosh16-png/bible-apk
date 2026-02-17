@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "bible",
-    "slug": "bible",
+    "name": "Holy Bible",
+    "slug": "holy-bible",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/holy_bible_logo.jpg",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/holy_bible_logo.jpg",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -16,14 +16,19 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.holybible.telugu",
+      "versionCode": 1,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/holy_bible_logo.jpg",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-asset"
+    ]
   }
 }

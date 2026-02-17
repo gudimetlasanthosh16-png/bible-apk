@@ -1,0 +1,249 @@
+﻿[
+    {
+        "chapter":  1,
+        "book":  "Genesis",
+        "references":  [
+                           {
+                               "chapter":  1,
+                               "book":  "John",
+                               "text":  "In the beginning was the Word...",
+                               "verse":  1
+                           },
+                           {
+                               "chapter":  11,
+                               "book":  "Hebrews",
+                               "text":  "Through faith we understand...",
+                               "verse":  3
+                           },
+                           {
+                               "chapter":  33,
+                               "book":  "Psalm",
+                               "text":  "By the word of the LORD...",
+                               "verse":  6
+                           }
+                       ],
+        "verse":  1
+    },
+    {
+        "chapter":  1,
+        "book":  "Genesis",
+        "references":  [
+                           {
+                               "chapter":  9,
+                               "book":  "Genesis",
+                               "text":  "In the image of God made he man...",
+                               "verse":  6
+                           },
+                           {
+                               "chapter":  4,
+                               "book":  "Ephesians",
+                               "text":  "Put on the new man, which after God is created...",
+                               "verse":  24
+                           }
+                       ],
+        "verse":  26
+    },
+    {
+        "chapter":  3,
+        "book":  "Genesis",
+        "references":  [
+                           {
+                               "chapter":  4,
+                               "book":  "Galatians",
+                               "text":  "God sent forth his Son, made of a woman...",
+                               "verse":  4
+                           },
+                           {
+                               "chapter":  16,
+                               "book":  "Romans",
+                               "text":  "And the God of peace shall bruise Satan under your feet...",
+                               "verse":  20
+                           }
+                       ],
+        "verse":  15
+    },
+    {
+        "chapter":  1,
+        "book":  "John",
+        "references":  [
+                           {
+                               "chapter":  1,
+                               "book":  "Genesis",
+                               "text":  "In the beginning God created...",
+                               "verse":  1
+                           },
+                           {
+                               "chapter":  1,
+                               "book":  "1 John",
+                               "text":  "That which was from the beginning...",
+                               "verse":  1
+                           }
+                       ],
+        "verse":  1
+    },
+    {
+        "chapter":  3,
+        "book":  "John",
+        "references":  [
+                           {
+                               "chapter":  5,
+                               "book":  "Romans",
+                               "text":  "But God commendeth his love toward us...",
+                               "verse":  8
+                           },
+                           {
+                               "chapter":  4,
+                               "book":  "1 John",
+                               "text":  "In this was manifested the love of God...",
+                               "verse":  9
+                           },
+                           {
+                               "chapter":  2,
+                               "book":  "Ephesians",
+                               "text":  "But God, who is rich in mercy, for his great love...",
+                               "verse":  4
+                           }
+                       ],
+        "verse":  16
+    },
+    {
+        "chapter":  1,
+        "book":  "Matthew",
+        "references":  [
+                           {
+                               "chapter":  7,
+                               "book":  "Isaiah",
+                               "text":  "Behold, a virgin shall conceive...",
+                               "verse":  14
+                           }
+                       ],
+        "verse":  23
+    },
+    {
+        "chapter":  3,
+        "book":  "Romans",
+        "references":  [
+                           {
+                               "chapter":  3,
+                               "book":  "Romans",
+                               "text":  "As it is written, There is none righteous...",
+                               "verse":  10
+                           },
+                           {
+                               "chapter":  14,
+                               "book":  "Psalm",
+                               "text":  "They are all gone aside...",
+                               "verse":  3
+                           }
+                       ],
+        "verse":  23
+    },
+    {
+        "chapter":  6,
+        "book":  "Romans",
+        "references":  [
+                           {
+                               "chapter":  5,
+                               "book":  "Romans",
+                               "text":  "Wherefore, as by one man sin entered into the world...",
+                               "verse":  12
+                           },
+                           {
+                               "chapter":  3,
+                               "book":  "John",
+                               "text":  "That whosoever believeth in him...",
+                               "verse":  16
+                           }
+                       ],
+        "verse":  23
+    },
+    {
+        "chapter":  2,
+        "book":  "Ephesians",
+        "references":  [
+                           {
+                               "chapter":  3,
+                               "book":  "Romans",
+                               "text":  "Being justified freely by his grace...",
+                               "verse":  24
+                           },
+                           {
+                               "chapter":  3,
+                               "book":  "Titus",
+                               "text":  "Not by works of righteousness which we have done...",
+                               "verse":  5
+                           }
+                       ],
+        "verse":  8
+    },
+    {
+        "chapter":  23,
+        "book":  "Psalm",
+        "references":  [
+                           {
+                               "chapter":  10,
+                               "book":  "John",
+                               "text":  "I am the good shepherd...",
+                               "verse":  11
+                           },
+                           {
+                               "chapter":  40,
+                               "book":  "Isaiah",
+                               "text":  "He shall feed his flock like a shepherd...",
+                               "verse":  11
+                           }
+                       ],
+        "verse":  1
+    },
+    {
+        "chapter":  53,
+        "book":  "Isaiah",
+        "references":  [
+                           {
+                               "chapter":  2,
+                               "book":  "1 Peter",
+                               "text":  "By whose stripes ye were healed.",
+                               "verse":  24
+                           },
+                           {
+                               "chapter":  8,
+                               "book":  "Matthew",
+                               "text":  "Himself took our infirmities, and bare our sicknesses.",
+                               "verse":  17
+                           }
+                       ],
+        "verse":  5
+    },
+    {
+        "chapter":  11,
+        "book":  "Hebrews",
+        "references":  [
+                           {
+                               "chapter":  8,
+                               "book":  "Romans",
+                               "text":  "For we are saved by hope...",
+                               "verse":  24
+                           },
+                           {
+                               "chapter":  5,
+                               "book":  "2 Corinthians",
+                               "text":  "For we walk by faith, not by sight.",
+                               "verse":  7
+                           }
+                       ],
+        "verse":  1
+    },
+    {
+        "chapter":  4,
+        "book":  "Philippians",
+        "references":  [
+                           {
+                               "chapter":  12,
+                               "book":  "2 Corinthians",
+                               "text":  "My grace is sufficient for thee: for my strength is made perfect in weakness.",
+                               "verse":  9
+                           }
+                       ],
+        "verse":  13
+    }
+]
