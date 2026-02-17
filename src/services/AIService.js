@@ -58,15 +58,15 @@ export const getAIResponse = async (userPrompt, chatHistory = [], language = 'en
 
         if (language === 'te') {
             if (topic) {
-                responseText = `ప్రభువు నామములో వందనములు. మీ ${topic} గురించి దేవుని వాక్యం ఇలా చెబుతోంది:\n\n"${webVerse}"\n(${reference} - KJV)\n\nచింతించకండి, ఆయన కృప మీకు తోడుగా ఉంటుంది. నేను మీ కోసం ప్రార్థిస్తున్నాను.`;
+                responseText = `ప్రభువు నామములో వందనములు. నేను హోలీ AI. మీ ${topic} గురించి దేవుని వాక్యం ఇలా చెబుతోంది:\n\n"${webVerse}"\n(${reference} - KJV)\n\nచింతించకండి, ఆయన కృప మీకు తోడుగా ఉంటుంది. నేను మీ కోసం ప్రార్థిస్తున్నాను.`;
             } else {
-                responseText = "ప్రభువుకు స్తోత్రం! మీ ప్రశ్న చాలా లోతైనది. దేవుని వాక్యం మనకు ఎల్లప్పుడూ వెలుగును ఇస్తుంది. నేను మీ కోసం మరిన్ని వాక్యాలను అన్వేషిస్తున్నాను.";
+                responseText = "ప్రభువుకు స్తోత్రం! నేను హోలీ AI. మీ ప్రశ్న చాలా లోతైనది. దేవుని వాక్యం మనకు ఎల్లప్పుడూ వెలుగును ఇస్తుంది. నేను మీ కోసం మరిన్ని వాక్యాలను అన్వేషిస్తున్నాను.";
             }
         } else {
             if (topic) {
-                responseText = `Praise the Lord! regarding your request for ${topic}, the Word of God provides this divine wisdom:\n\n"${webVerse}"\n(${reference} - KJV)\n\nDo not be troubled; His grace is sufficient for you. I will keep you in my prayers.`;
+                responseText = `Praise the Lord! I am Holy AI. Regarding your request for ${topic}, the Word of God provides this divine wisdom:\n\n"${webVerse}"\n(${reference} - KJV)\n\nDo not be troubled; His grace is sufficient for you. I will keep you in my prayers.`;
             } else {
-                responseText = "Praise the Lord! Your inquiry is precious. While I am reflecting on the depths of the Word, know that His Spirit guides all who seek Him.";
+                responseText = "Praise the Lord! I am Holy AI. Your inquiry is precious. While I am reflecting on the depths of the Word, know that His Spirit guides all who seek Him.";
             }
         }
 

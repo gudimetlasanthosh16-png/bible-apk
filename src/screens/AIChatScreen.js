@@ -15,7 +15,7 @@ const SUGGESTIONS = [
 export default function AIChatScreen({ navigation }) {
     const { colors, theme, language } = useContext(BibleContext);
     const [messages, setMessages] = useState([
-        { id: '1', text: language === 'en' ? 'Praise the Lord! I am your Divine Assistant. How can I help you explore the Word today?' : 'ప్రభువుకు స్తోత్రం! నేను మీ దైవిక సహాయకుడిని. ఈ రోజు వాక్యాన్ని అన్వేషించడంలో నేను మీకు ఎలా సహాయపడగలను?', sender: 'ai' }
+        { id: '1', text: language === 'en' ? 'Praise the Lord! I am Holy AI, your spiritual companion. How can I help you explore the Word today?' : 'ప్రభువుకు స్తోత్రం! నేను హోలీ AI, మీ ఆధ్యాత్మిక తోడుని. ఈ రోజు వాక్యాన్ని అన్వేషించడంలో నేను మీకు ఎలా సహాయపడగలను?', sender: 'ai' }
     ]);
     const [inputText, setInputText] = useState('');
     const [isTyping, setIsTyping] = useState(false);
@@ -93,7 +93,7 @@ export default function AIChatScreen({ navigation }) {
                     onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
                     ListHeaderComponent={() => (
                         <View style={styles.chatHeader}>
-                            <Text style={[styles.chatSub, { color: colors.accent }]}>DIVINE ASSISTANT</Text>
+                            <Text style={[styles.chatSub, { color: colors.accent }]}>HOLY AI</Text>
                             <Text style={[styles.chatTitle, { color: colors.text }]}>Spiritual Guide</Text>
 
                             <View style={styles.suggestionRow}>

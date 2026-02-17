@@ -327,7 +327,7 @@ export default function HomeScreen({ navigation }) {
                             />
                             <DrawerItem
                                 icon="🤖"
-                                title={language === 'en' ? 'Divine Assistant AI' : 'దైవిక సహాయకుడు AI'}
+                                title={language === 'en' ? 'Holy AI' : 'హోలీ AI'}
                                 onPress={() => { setIsMenuVisible(false); navigation.navigate('AIChat'); }}
                                 colors={colors}
                             />

@@ -159,7 +159,7 @@ const MainStack = () => {
                 <Stack.Screen
                     name="AIChat"
                     component={AIChatScreen}
-                    options={{ title: 'Divine Assistant' }}
+                    options={{ title: 'Holy AI' }}
                 />
             </Stack.Navigator>
         </NavigationContainer>
