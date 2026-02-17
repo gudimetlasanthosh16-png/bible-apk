@@ -1,7 +1,9 @@
 import React, { useContext, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, Dimensions, Modal, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, Dimensions, Modal, StatusBar, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BibleContext } from '../context/BibleContext';
+import * as MediaLibrary from 'expo-media-library';
+import * as FileSystem from 'expo-file-system';
 import { SHADOWS, SPACING, BORDER_RADIUS } from '../constants/theme';
 
 const { width } = Dimensions.get('window');
@@ -28,6 +30,30 @@ const SAMPLE_WALLPAPERS = [
 export default function WallpaperScreen({ navigation }) {
     const { colors, theme } = useContext(BibleContext);
     const [selectedImage, setSelectedImage] = useState(null);
+
+    const handleDownload = async (imageUrl) => {
+        try {
+            const { status } = await MediaLibrary.requestPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Permission Denied', 'Storage permission is required to save the wallpaper.');
+                return;
+            }
+
+            const fileName = imageUrl.split('/').pop().split('?')[0] + '.jpg';
+            const fileUri = FileSystem.documentDirectory + fileName;
+
+            const downloadResumable = FileSystem.createDownloadResumable(imageUrl, fileUri);
+            const { uri } = await downloadResumable.downloadAsync();
+
+            const asset = await MediaLibrary.createAssetAsync(uri);
+            await MediaLibrary.createAlbumAsync('Holy Bible Wallpapers', asset, false);
+
+            Alert.alert('Success', 'Wallpaper saved to your gallery!');
+        } catch (error) {
+            console.error(error);
+            Alert.alert('Error', 'Failed to download wallpaper.');
+        }
+    };
 
     const renderItem = ({ item }) => {
         const cardShadow = theme === 'light' ? SHADOWS.light : SHADOWS.dark;
@@ -97,9 +123,9 @@ export default function WallpaperScreen({ navigation }) {
                                     </TouchableOpacity>
                                     <TouchableOpacity
                                         style={[styles.pBtn, { backgroundColor: colors.accent }]}
-                                        onPress={() => alert('Download feature coming soon!')}
+                                        onPress={() => handleDownload(selectedImage.url)}
                                     >
-                                        <Text style={[styles.pBtnText, { color: '#fff' }]}>SET WALLPAPER</Text>
+                                        <Text style={[styles.pBtnText, { color: '#fff' }]}>SAVE TO GALLERY</Text>
                                     </TouchableOpacity>
                                 </View>
                             </View>

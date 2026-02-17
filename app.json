@@ -2,7 +2,7 @@
   "expo": {
     "name": "Holy Bible",
     "slug": "holy-bible",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/holy_bible_logo.jpg",
     "userInterfaceStyle": "light",
@@ -17,7 +17,7 @@
     },
     "android": {
       "package": "com.holybible.telugu",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./assets/holy_bible_logo.jpg",
         "backgroundColor": "#ffffff"
@@ -28,7 +28,14 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow Holy Bible to access your photos to save sacred wallpapers.",
+          "savePhotosPermission": "Allow Holy Bible to save sacred wallpapers to your gallery."
+        }
+      ]
     ]
   }
 }

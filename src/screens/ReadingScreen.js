@@ -1,5 +1,6 @@
 ﻿import React, { useContext, useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, StatusBar, Modal, ScrollView, Switch } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, Modal, ScrollView, StatusBar, Dimensions, Alert } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BibleContext } from '../context/BibleContext';
 import { useNavigation } from '@react-navigation/native';
@@ -225,6 +226,16 @@ export default function ReadingScreen({ route }) {
         setIsActionPanelVisible(true);
     };
 
+    const copyVerse = async (item) => {
+        if (!item) return;
+        const textToCopy = `${item.primary}${isDualMode ? '\n' + item.secondary : ''}\n— ${item.bookName} ${item.chapter}:${item.verseNumber}`;
+        await Clipboard.setStringAsync(textToCopy);
+        Alert.alert(
+            language === 'en' ? "Copied" : "కాపీ చేయబడింది",
+            language === 'en' ? "Verse copied to clipboard" : "వచనం క్లిప్‌బోర్డ్‌కు కాపీ చేయబడింది"
+        );
+    };
+
     const renderItem = ({ item, index }) => {
         const isSpeaking = speakingVerseIndex === index;
         const highlightColor = highlights[item.id];
@@ -362,6 +373,14 @@ export default function ReadingScreen({ route }) {
                             >
                                 <Text style={[{ fontSize: 20, fontWeight: '900', textDecorationLine: 'underline' }, underlines.includes(activeVerseData?.id) ? { color: '#FFF' } : { color: colors.text }]}>U</Text>
                                 <Text style={[styles.actionBtnText, { color: underlines.includes(activeVerseData?.id) ? '#FFF' : colors.text }]}>Underline</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.actionBtn, { backgroundColor: colors.highlight }]}
+                                onPress={() => { copyVerse(activeVerseData); setIsActionPanelVisible(false); }}
+                            >
+                                <Text style={{ fontSize: 20 }}>📋</Text>
+                                <Text style={[styles.actionBtnText, { color: colors.text }]}>Copy</Text>
                             </TouchableOpacity>
                         </View>
 

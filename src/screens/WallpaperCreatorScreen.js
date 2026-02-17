@@ -1,7 +1,10 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, ScrollView, Dimensions, Alert, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BibleContext } from '../context/BibleContext';
+import ViewShot from 'react-native-view-shot';
+import * as MediaLibrary from 'expo-media-library';
+import * as Sharing from 'expo-sharing';
 import { SHADOWS, SPACING, BORDER_RADIUS } from '../constants/theme';
 
 const { width } = Dimensions.get('window');
@@ -13,23 +16,54 @@ const BACKGROUNDS = [
     'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1493246507139-91e8bef99c1a?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1433086566608-bc710c3bc4db?auto=format&fit=crop&w=800&q=80',
 ];
 
 const COLORS = ['#FFFFFF', '#FFD700', '#F8FAFC', '#E2E8F0', '#94A3B8', '#1E293B'];
 
 export default function WallpaperCreatorScreen({ navigation }) {
-    const { colors, theme } = useContext(BibleContext);
+    const { colors, theme, language } = useContext(BibleContext);
     const [verse, setVerse] = useState('');
     const [selectedBg, setSelectedBg] = useState(BACKGROUNDS[0]);
     const [textColor, setTextColor] = useState('#FFFFFF');
+    const viewShotRef = useRef();
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!verse.trim()) {
             Alert.alert('Incomplete Art', 'Please enter a sacred verse to complete your work.');
             return;
         }
-        Alert.alert('Creation Successful', 'Your custom sacred art has been prepared.');
-        navigation.goBack();
+
+        try {
+            // Request permissions
+            const { status } = await MediaLibrary.requestPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Permission Denied', 'We need storage permissions to save your sacred art.');
+                return;
+            }
+
+            // Capture the view
+            const uri = await viewShotRef.current.capture();
+
+            // Save to gallery
+            const asset = await MediaLibrary.createAssetAsync(uri);
+            await MediaLibrary.createAlbumAsync('Holy Bible Art', asset, false);
+
+            Alert.alert(
+                'Sacred Art Saved',
+                'Your custom wallpaper has been saved to your gallery. Would you like to share it?',
+                [
+                    { text: 'Later', style: 'cancel' },
+                    { text: 'SHARE', onPress: () => Sharing.shareAsync(uri) }
+                ]
+            );
+        } catch (error) {
+            console.error(error);
+            Alert.alert('Error', 'Failed to save wallpaper.');
+        }
     };
 
     const cardShadow = theme === 'light' ? SHADOWS.light : SHADOWS.dark;
@@ -41,15 +75,17 @@ export default function WallpaperCreatorScreen({ navigation }) {
 
                 <View style={styles.previewSection}>
                     <Text style={[styles.sectionSub, { color: colors.accent }]}>STUDIO PREVIEW</Text>
-                    <View style={[styles.mainPreview, cardShadow]}>
-                        <Image source={{ uri: selectedBg }} style={styles.fullPreviewBg} />
-                        <View style={styles.previewTint} />
-                        <View style={styles.previewTextOverlay}>
-                            <Text style={[styles.previewMainText, { color: textColor }]}>
-                                {verse || 'Your Blessed Word'}
-                            </Text>
+                    <ViewShot ref={viewShotRef} options={{ format: 'jpg', quality: 0.9 }}>
+                        <View style={[styles.mainPreview, cardShadow]}>
+                            <Image source={{ uri: selectedBg }} style={styles.fullPreviewBg} />
+                            <View style={styles.previewTint} />
+                            <View style={styles.previewTextOverlay}>
+                                <Text style={[styles.previewMainText, { color: textColor }]}>
+                                    {verse || 'Your Blessed Word'}
+                                </Text>
+                            </View>
                         </View>
-                    </View>
+                    </ViewShot>
                 </View>
 
                 <View style={styles.creatorControls}>
