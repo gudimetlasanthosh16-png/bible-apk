@@ -1,24 +1,26 @@
 import { Alert, Linking } from 'react-native';
 import Constants from 'expo-constants';
-
-// Replace this with your actual JSON file URL (e.g., GitHub Gist, Firebase Storage, or your website)
-// Example JSON content: { "latestVersion": "1.0.1", "updateUrl": "https://example.com/bible.apk", "message": "New features: Background music, more stories!" }
 const UPDATE_CONFIG_URL = 'https://raw.githubusercontent.com/gudimetlasanthosh16-png/bible-apk/refs/heads/main/update.json';
+let hasShownUpdateThisSession = false;
 
 export const checkForUpdates = async () => {
+    if (hasShownUpdateThisSession) return null;
+
     try {
-        const response = await fetch(UPDATE_CONFIG_URL);
+        const response = await fetch(UPDATE_CONFIG_URL + '?t=' + Date.now());
         const data = await response.json();
 
         // Get current version from app.json / Constants
-        const currentVersion = Constants.expoConfig?.version || '1.0.0';
+        const currentVersion = Constants.expoConfig?.version || Constants.manifest?.version || '1.0.1';
+
+        console.log(`Checking version: App(${currentVersion}) vs Server(${data.latestVersion})`);
 
         if (isVersionHigher(data.latestVersion, currentVersion)) {
+            hasShownUpdateThisSession = true;
             return data;
         }
         return null;
     } catch (error) {
-        console.warn("Update check skipped (likely offline or host down)");
         return null;
     }
 };
