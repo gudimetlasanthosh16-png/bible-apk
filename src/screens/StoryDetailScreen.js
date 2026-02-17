@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { View, Text, ScrollView, StyleSheet, StatusBar } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, StatusBar, TouchableOpacity, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BibleContext } from '../context/BibleContext';
 import { SHADOWS, SPACING, BORDER_RADIUS } from '../constants/theme';
@@ -28,11 +28,16 @@ export default function StoryDetailScreen({ route, navigation }) {
             <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.headerBackground} />
             <ScrollView contentContainerStyle={styles.storyScroll} showsVerticalScrollIndicator={false}>
                 <View style={styles.storyHeaderBox}>
-                    <Text style={[styles.storySubLabel, { color: colors.accent }]}>BIBLE STORY FOR KIDS</Text>
+                    <View style={[styles.ornamentLine, { backgroundColor: colors.accent }]} />
+                    <Text style={[styles.storySubLabel, { color: colors.accent }]}>SACRED TALES FOR CHILDREN</Text>
                     <Text selectable={true} style={[styles.storyMainTitle, { color: colors.text }]}>{title}</Text>
+                    <View style={[styles.ornamentLine, { backgroundColor: colors.accent }]} />
                 </View>
 
                 <View style={[styles.storyCard, { backgroundColor: colors.card, borderColor: colors.border }, cardShadow]}>
+                    <View style={styles.quoteMark}>
+                        <Text style={{ fontSize: 60, color: colors.accent, opacity: 0.2, fontWeight: '900' }}>“</Text>
+                    </View>
                     <Text
                         selectable={true}
                         style={[
@@ -45,7 +50,12 @@ export default function StoryDetailScreen({ route, navigation }) {
                     </Text>
                 </View>
 
-                <View style={{ height: 40 }} />
+                <TouchableOpacity
+                    style={[styles.backButton, { backgroundColor: colors.highlight }]}
+                    onPress={() => navigation.goBack()}
+                >
+                    <Text style={[styles.backButtonText, { color: colors.accent }]}>BACK TO STORIES</Text>
+                </TouchableOpacity>
             </ScrollView>
         </SafeAreaView>
     );
@@ -86,7 +96,31 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     storyTelugu: {
-        fontSize: 21,
-        lineHeight: 40,
+        fontSize: 22,
+        lineHeight: 44,
+    },
+    ornamentLine: {
+        width: 40,
+        height: 2,
+        marginVertical: 12,
+        borderRadius: 1,
+    },
+    quoteMark: {
+        position: 'absolute',
+        top: -10,
+        left: 20,
+    },
+    backButton: {
+        marginTop: 40,
+        height: 60,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 40,
+    },
+    backButtonText: {
+        fontSize: 14,
+        fontWeight: '900',
+        letterSpacing: 2,
     }
 });

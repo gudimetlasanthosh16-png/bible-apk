@@ -2,7 +2,7 @@
   "expo": {
     "name": "Holy Bible",
     "slug": "holy-bible",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/holy_bible_logo.jpg",
     "userInterfaceStyle": "light",
@@ -17,7 +17,7 @@
     },
     "android": {
       "package": "com.holybible.telugu",
-      "versionCode": 3,
+      "versionCode": 4,
       "adaptiveIcon": {
         "foregroundImage": "./assets/holy_bible_logo.jpg",
         "backgroundColor": "#ffffff"

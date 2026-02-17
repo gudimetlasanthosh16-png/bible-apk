@@ -94,6 +94,8 @@ export default function HomeScreen({ navigation }) {
     const renderStoryItem = ({ item }) => {
         const title = language === 'te' ? item.title_te : item.title_en;
         const cardShadow = theme === 'light' ? SHADOWS.light : SHADOWS.dark;
+        const emojis = ['🤴', '🦁', '🌊', '🔥', '🦅', '🏹', '🐋', '🥖'];
+        const emoji = emojis[item.id % emojis.length] || '📖';
 
         return (
             <TouchableOpacity
@@ -101,13 +103,16 @@ export default function HomeScreen({ navigation }) {
                 onPress={() => navigation.navigate('StoryDetail', { story: item })}
                 activeOpacity={0.8}
             >
-                <View style={styles.mediaIconLarge}>
-                    <Text style={{ fontSize: 32 }}>📖</Text>
+                <View style={[styles.mediaIconLarge, { backgroundColor: colors.highlight }]}>
+                    <Text style={{ fontSize: 36 }}>{emoji}</Text>
                 </View>
                 <View style={styles.mediaContent}>
-                    <Text style={[styles.mediaTitle, { color: colors.text }]}>{title}</Text>
-                    <View style={[styles.mediaBadge, { backgroundColor: colors.highlight }]}>
-                        <Text style={[styles.mediaBadgeText, { color: colors.accent }]}>READ STORY</Text>
+                    <Text style={[styles.mediaSub, { color: colors.accent, marginBottom: 4 }]}>BIBLE STORY</Text>
+                    <Text style={[styles.mediaTitle, { color: colors.text }]} numberOfLines={2}>
+                        {title}
+                    </Text>
+                    <View style={[styles.mediaBadge, { backgroundColor: colors.accent, marginTop: 12, paddingHorizontal: 12 }]}>
+                        <Text style={[styles.mediaBadgeText, { color: '#FFF' }]}>READ NOW</Text>
                     </View>
                 </View>
             </TouchableOpacity>
