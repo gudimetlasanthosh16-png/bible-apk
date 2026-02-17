@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Keyboard
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BibleContext } from '../context/BibleContext';
 import { SHADOWS, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { getAIResponse } from '../services/AIService';
 
 const SUGGESTIONS = [
     { id: '1', text: 'Give me a verse for peace', icon: '🕊️' },
@@ -32,7 +33,7 @@ export default function AIChatScreen({ navigation }) {
         }
     }, [isTyping]);
 
-    const handleSend = (text) => {
+    const handleSend = async (text) => {
         const message = text || inputText;
         if (!message.trim()) return;
 
@@ -41,29 +42,17 @@ export default function AIChatScreen({ navigation }) {
         setInputText('');
         setIsTyping(true);
 
-        // Simulate AI Response
-        setTimeout(() => {
-            let aiText = "";
-            const msg = message.toLowerCase();
+        // REAL ML LOGIC - Gemini AI
+        const response = await getAIResponse(message, messages);
 
-            if (msg.includes('peace') || msg.includes('శాంతి')) {
-                aiText = language === 'en'
-                    ? "John 14:27 says: 'Peace I leave with you; my peace I give you. I do not give to you as the world gives. Do not let your hearts be troubled and do not be afraid.'"
-                    : "యోహాను 14:27: 'శాంతి మీకు అనుగ్రహించి వెళ్లుచున్నాను; నా శాంతినే మీకు అనుగ్రహించుచున్నాను; లోకమిచ్చునట్టుగా నేను మీకు అనుగ్రహించుట లేదు. మీ హృదయమును కలవరపడనీయకుడి, భయపడనీయకుడి.'";
-            } else if (msg.includes('strength') || msg.includes('బలం')) {
-                aiText = language === 'en'
-                    ? "Philippians 4:13: 'I can do all things through Christ who strengthens me.'"
-                    : "ఫిలిప్పీయులకు 4:13: 'నన్ను బలపరచువానియందే నేను సమస్తమును చేయగలను.'";
-            } else {
-                aiText = language === 'en'
-                    ? "That is a beautiful thought. The Word of God always has an answer. Let us meditate on His grace together."
-                    : "అది చాలా మంచి ఆలోచన. దేవుని వాక్యంలో ఎప్పుడూ సమాధానం ఉంటుంది. ఆయన కృప గురించి మనం కలిసి ధ్యానిద్దాం.";
-            }
+        const newAiMessage = {
+            id: (Date.now() + 1).toString(),
+            text: response.text,
+            sender: 'ai'
+        };
 
-            const newAiMessage = { id: (Date.now() + 1).toString(), text: aiText, sender: 'ai' };
-            setMessages(prev => [...prev, newAiMessage]);
-            setIsTyping(false);
-        }, 1500);
+        setMessages(prev => [...prev, newAiMessage]);
+        setIsTyping(false);
     };
 
     const renderMessage = ({ item }) => (
