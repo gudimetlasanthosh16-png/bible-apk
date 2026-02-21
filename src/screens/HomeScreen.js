@@ -325,7 +325,18 @@ export default function HomeScreen({ navigation }) {
                                 onPress={() => { setIsMenuVisible(false); navigation.navigate('Wallpaper'); }}
                                 colors={colors}
                             />
-
+                            <DrawerItem
+                                icon="📚"
+                                title={language === 'en' ? 'Bible Commentaries' : 'బైబిల్ వ్యాఖ్యానాలు'}
+                                onPress={() => { setIsMenuVisible(false); navigation.navigate('CommentaryList'); }}
+                                colors={colors}
+                            />
+                            <DrawerItem
+                                icon="🤖"
+                                title={language === 'en' ? 'Holy AI' : 'AI చాట్'}
+                                onPress={() => { setIsMenuVisible(false); navigation.navigate('AIChat'); }}
+                                colors={colors}
+                            />
 
                             <View style={[styles.drawerDivider, { backgroundColor: colors.border, marginVertical: 32 }]} />
 
@@ -349,14 +360,15 @@ export default function HomeScreen({ navigation }) {
                         </ScrollView>
 
                         <View style={styles.drawerFoot}>
-                            <Text style={[styles.vText, { color: colors.secondaryText }]}>Version 2.0.0 • Holy Bible Edition</Text>
+                            <Text style={[styles.vText, { color: colors.secondaryText }]}>Version 2.1.0 • Holy Bible Edition</Text>
                         </View>
                     </View>
                 </TouchableOpacity>
             </Modal>
 
 
-        </SafeAreaView>
+
+        </SafeAreaView >
     );
 }
 

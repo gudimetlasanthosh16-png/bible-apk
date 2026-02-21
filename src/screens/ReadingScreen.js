@@ -377,12 +377,33 @@ export default function ReadingScreen({ route }) {
 
                             <TouchableOpacity
                                 style={[styles.actionBtn, { backgroundColor: colors.highlight }]}
-                                onPress={() => { copyVerse(activeVerseData); setIsActionPanelVisible(false); }}
+                                onPress={() => {
+                                    copyVerse(activeVerseData);
+                                    setIsActionPanelVisible(false);
+                                }}
                             >
                                 <Text style={{ fontSize: 20 }}>📋</Text>
                                 <Text style={[styles.actionBtnText, { color: colors.text }]}>Copy</Text>
                             </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.actionBtn, { backgroundColor: colors.highlight }]}
+                                onPress={() => {
+                                    setIsActionPanelVisible(false);
+                                    navigation.navigate('CommentaryList', {
+                                        bookIndex: bookIndex,
+                                        chapterIndex: chapterIndex,
+                                        verseNumber: activeVerseData?.verseNumber,
+                                        autoJump: true
+                                    });
+
+                                }}
+                            >
+                                <Text style={{ fontSize: 20 }}>📚</Text>
+                                <Text style={[styles.actionBtnText, { color: colors.text }]}>Study</Text>
+                            </TouchableOpacity>
                         </View>
+
 
                         <View style={[styles.drawerDivider, { backgroundColor: colors.border, marginVertical: 20 }]} />
 

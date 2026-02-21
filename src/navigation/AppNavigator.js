@@ -14,6 +14,11 @@ import WallpaperCreatorScreen from '../screens/WallpaperCreatorScreen';
 import SearchScreen from '../screens/SearchScreen';
 import DailyBreadScreen from '../screens/DailyBreadScreen';
 import AIChatScreen from '../screens/AIChatScreen';
+import CommentaryListScreen from '../screens/CommentaryListScreen';
+import CommentaryBooksScreen from '../screens/CommentaryBooksScreen';
+import CommentaryChapterSelectionScreen from '../screens/CommentaryChapterSelectionScreen';
+import CommentaryDisplayScreen from '../screens/CommentaryDisplayScreen';
+
 
 const Stack = createNativeStackNavigator();
 export const navigationRef = createNavigationContainerRef();
@@ -161,6 +166,28 @@ const MainStack = () => {
                     component={AIChatScreen}
                     options={{ title: 'Holy AI' }}
                 />
+                <Stack.Screen
+                    name="CommentaryList"
+                    component={CommentaryListScreen}
+                    options={{ title: 'Commentaries' }}
+                />
+                <Stack.Screen
+                    name="CommentaryBooks"
+                    component={CommentaryBooksScreen}
+                    options={{ title: 'Select Book' }}
+                />
+                <Stack.Screen
+                    name="CommentaryChapterSelection"
+                    component={CommentaryChapterSelectionScreen}
+                    options={{ title: 'Select Chapter' }}
+                />
+                <Stack.Screen
+                    name="CommentaryDisplay"
+                    component={CommentaryDisplayScreen}
+                    options={{ title: 'Commentary' }}
+                />
+
+
             </Stack.Navigator>
         </NavigationContainer>
     );
