@@ -1,6 +1,6 @@
 import { Alert, Linking } from 'react-native';
 import Constants from 'expo-constants';
-const UPDATE_CONFIG_URL = 'https://raw.githubusercontent.com/gudimetlasanthosh16-png/bible-apk/refs/heads/main/update.json';
+const UPDATE_CONFIG_URL = 'https://raw.githubusercontent.com/gudimetlasanthosh16-png/bible-apk/main/update.json';
 let hasShownUpdateThisSession = false;
 
 export const checkForUpdates = async () => {
