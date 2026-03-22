@@ -8,9 +8,11 @@ import DailyWordModal from './src/components/DailyWordModal';
 import UpdateModal from './src/components/UpdateModal';
 import * as Notifications from 'expo-notifications';
 import { requestNotificationPermissions, scheduleDailyNotifications } from './src/services/NotificationService';
+import IntroAnimation from './src/components/IntroAnimation';
 
 function AppContent() {
   const { loading } = useContext(BibleContext);
+  const [showIntro, setShowIntro] = React.useState(true);
 
   useEffect(() => {
     async function setupNotifications() {
@@ -31,6 +33,15 @@ function AppContent() {
 
     return () => subscription.remove();
   }, []);
+
+  if (showIntro) {
+    return (
+      <>
+        <StatusBar style="light" />
+        <IntroAnimation onComplete={() => setShowIntro(false)} />
+      </>
+    );
+  }
 
   if (loading) {
     return (

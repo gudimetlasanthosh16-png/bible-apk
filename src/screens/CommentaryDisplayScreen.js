@@ -4,12 +4,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BibleContext } from '../context/BibleContext';
 import { CommentaryService } from '../services/CommentaryService';
 import { SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
+import { translateText } from '../services/AIService';
 
 export default function CommentaryDisplayScreen({ route, navigation }) {
     const { commentaryId, bookId, chapterNumber, bookName, verseNumber } = route.params;
     const { colors, theme } = useContext(BibleContext);
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [translations, setTranslations] = useState({});
+    const [translatingId, setTranslatingId] = useState(null);
     const flatListRef = useRef(null);
 
     useEffect(() => {
@@ -26,6 +29,20 @@ export default function CommentaryDisplayScreen({ route, navigation }) {
         });
         loadCommentary();
     }, [commentaryId, bookId, chapterNumber]);
+
+    const handleTranslate = async (verseNumber, textContent) => {
+        if (translations[verseNumber]) {
+            // Toggle off if already translated (optional, or just leave it)
+            // For now, let's just keep it.
+            return;
+        }
+
+        setTranslatingId(verseNumber);
+        const fullText = textContent.join(' ');
+        const translated = await translateText(fullText, 'te');
+        setTranslations(prev => ({ ...prev, [verseNumber]: translated }));
+        setTranslatingId(null);
+    };
 
     const loadCommentary = async () => {
         setLoading(true);
@@ -54,19 +71,52 @@ export default function CommentaryDisplayScreen({ route, navigation }) {
         if (item.type !== 'verse') return null;
 
         const isTarget = item.number === verseNumber;
+        const translatedText = translations[item.number];
+        const isTranslating = translatingId === item.number;
 
         return (
             <View style={[
                 styles.verseBox,
                 isTarget && { backgroundColor: colors.highlight, borderColor: colors.accent, borderLeftWidth: 4 }
             ]}>
-                <Text style={[styles.verseNum, { color: colors.accent }]}>Verse {item.number}</Text>
-                {item.content.map((text, tIdx) => (
-                    <Text key={tIdx} style={[styles.verseText, { color: colors.text }]}>{text}</Text>
-                ))}
+                <View style={styles.verseHeader}>
+                    <Text style={[styles.verseNum, { color: colors.accent }]}>Verse {item.number}</Text>
+                    <TouchableOpacity
+                        style={[styles.translateBtn, { backgroundColor: colors.highlight }]}
+                        onPress={() => handleTranslate(item.number, item.content)}
+                        disabled={isTranslating}
+                    >
+                        {isTranslating ? (
+                            <ActivityIndicator size="small" color={colors.accent} />
+                        ) : (
+                            <Text style={styles.translateIcon}>🌐</Text>
+                        )}
+                        <Text style={[styles.translateText, { color: colors.accent }]}>
+                            {translatedText ? "Translated" : "Translate"}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+
+                {item.content.map((text, tIdx) => {
+                    // Split by \n for paragraph support
+                    const paragraphs = text.split('\\n').filter(p => p.trim() !== '');
+                    return paragraphs.map((para, pIdx) => (
+                        <Text key={`${tIdx}-${pIdx}`} selectable={true} selectionColor="#FFF59D" style={[styles.verseText, { color: colors.text }]}>
+                            {para.trim()}
+                        </Text>
+                    ));
+                })}
+
+                {translatedText && (
+                    <View style={[styles.translationBox, { borderTopColor: colors.border }]}>
+                        <Text style={[styles.translationLabel, { color: colors.accent }]}>TELUGU TRANSLATION</Text>
+                        <Text selectable={true} selectionColor="#FFF59D" style={[styles.translatedContent, { color: colors.text }]}>{translatedText}</Text>
+                    </View>
+                )}
             </View>
         );
     };
+
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
@@ -197,6 +247,45 @@ const styles = StyleSheet.create({
         color: '#FFF',
         fontWeight: '900',
         fontSize: 16,
+    },
+    verseHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    translateBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 15,
+    },
+    translateIcon: {
+        fontSize: 14,
+        marginRight: 6,
+    },
+    translateText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    translationBox: {
+        marginTop: 15,
+        paddingTop: 15,
+        borderTopWidth: 1,
+    },
+    translationLabel: {
+        fontSize: 11,
+        fontWeight: '900',
+        letterSpacing: 1,
+        marginBottom: 8,
+    },
+    translatedContent: {
+        fontSize: 16,
+        lineHeight: 26,
+        fontWeight: '500',
+        fontStyle: 'italic',
     }
 });
+
 

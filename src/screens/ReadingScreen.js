@@ -1,5 +1,5 @@
-﻿import React, { useContext, useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, Modal, ScrollView, StatusBar, Dimensions, Alert } from 'react-native';
+import React, { useContext, useState, useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, Modal, ScrollView, StatusBar, Dimensions, Alert, Share, ActivityIndicator } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BibleContext } from '../context/BibleContext';
@@ -8,13 +8,22 @@ import * as Speech from 'expo-speech';
 import { ENGLISH_BOOKS } from '../constants/books';
 import { SHADOWS, SPACING, BORDER_RADIUS } from '../constants/theme';
 
+const oldColorMap = {
+    '#FFEB3B': '#FFF59D',
+    '#8BC34A': '#A5D6A7',
+    '#03A9F4': '#90CAF9',
+    '#E91E63': '#EF9A9A',
+    '#9C27B0': '#CE93D8'
+};
+
 export default function ReadingScreen({ route }) {
     const { bookIndex, chapterIndex, bookName, verseIndex } = route.params;
     const {
         getChapterContent, getCrossReferences,
         language, colors, theme,
         highlights, favorites, underlines,
-        toggleHighlight, toggleFavorite, toggleUnderline
+        toggleHighlight, toggleFavorite, toggleUnderline,
+        getBookData, TELUGU_BOOKS, crossReferenceData
     } = useContext(BibleContext);
     const navigation = useNavigation();
     const [isDualMode, setIsDualMode] = useState(false);
@@ -36,6 +45,7 @@ export default function ReadingScreen({ route }) {
     const [crossRefs, setCrossRefs] = useState([]);
     const [verses, setVerses] = useState([]);
     const [availableVoices, setAvailableVoices] = useState([]);
+    const [selectedVerses, setSelectedVerses] = useState([]); // Array of verse IDs
 
     const flatListRef = useRef(null);
 
@@ -79,6 +89,19 @@ export default function ReadingScreen({ route }) {
             ),
             headerRight: () => (
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    {selectedVerses.length > 0 && (
+                        <TouchableOpacity
+                            onPress={() => {
+                                const firstVerse = verses.find(v => v.id === selectedVerses[0]);
+                                setActiveVerseData(firstVerse);
+                                setIsActionPanelVisible(true);
+                            }}
+                            style={[styles.modePill, { backgroundColor: colors.accent, marginRight: 8 }]}
+                        >
+                            <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 12 }}>{selectedVerses.length} SELECTED</Text>
+                        </TouchableOpacity>
+                    )}
+
                     <TouchableOpacity
                         onPress={() => setIsSettingsVisible(true)}
                         style={[styles.headerIconCircle, { backgroundColor: colors.highlight }]}
@@ -106,7 +129,7 @@ export default function ReadingScreen({ route }) {
                 </View>
             ),
         });
-    }, [navigation, isDualMode, bookName, chapterIndex, colors, isAutoPlaying]);
+    }, [navigation, isDualMode, bookName, chapterIndex, colors, isAutoPlaying, selectedVerses, verses]);
 
     useEffect(() => {
         const primaryVerses = getChapterContent(bookIndex, chapterIndex, language);
@@ -121,7 +144,8 @@ export default function ReadingScreen({ route }) {
                 secondary: secondaryVerses[i] ? secondaryVerses[i].Verse : '',
                 verseNumber: i + 1,
                 bookName: bookName,
-                chapter: chapterIndex + 1
+                chapter: chapterIndex + 1,
+                index: i
             }));
             setVerses(combined);
         } else {
@@ -130,7 +154,8 @@ export default function ReadingScreen({ route }) {
                 primary: v.Verse,
                 verseNumber: i + 1,
                 bookName: bookName,
-                chapter: chapterIndex + 1
+                chapter: chapterIndex + 1,
+                index: i
             })));
         }
 
@@ -216,56 +241,139 @@ export default function ReadingScreen({ route }) {
     };
 
     const toggleVerseOptions = async (index, item) => {
+        // If we are in multi-selection mode, toggle the selection instead of opening the panel
+        if (selectedVerses.length > 0) {
+            handleVerseToggle(item.id);
+            return;
+        }
+
         await Speech.stop();
         setIsAutoPlaying(false);
         setSpeakingVerseIndex(-1);
 
         setActiveVerseData({ ...item, index });
+        
+        // Instant raw data lookup
         const refs = getCrossReferences(item.bookName, item.chapter, item.verseNumber);
         setCrossRefs(refs);
         setIsActionPanelVisible(true);
     };
 
-    const copyVerse = async (item) => {
-        if (!item) return;
-        const textToCopy = `${item.primary}${isDualMode ? '\n' + item.secondary : ''}\n— ${item.bookName} ${item.chapter}:${item.verseNumber}`;
+    const handleVerseToggle = (id) => {
+        setSelectedVerses(prev => {
+            const isAlreadySelected = prev.includes(id);
+            if (isAlreadySelected) {
+                return prev.filter(v => v !== id);
+            } else {
+                return [...prev, id];
+            }
+        });
+    };
+
+    const formatVersesForExport = () => {
+        if (selectedVerses.length > 0) {
+            // Get all selected verse objects and sort them by verse number
+            const sortedSelected = verses
+                .filter(v => selectedVerses.includes(v.id))
+                .sort((a, b) => a.verseNumber - b.verseNumber);
+
+            if (sortedSelected.length === 0) return '';
+
+            const firstVerse = sortedSelected[0];
+            const lastVerse = sortedSelected[sortedSelected.length - 1];
+            
+            const citation = sortedSelected.length > 1 
+                ? `${firstVerse.bookName} ${firstVerse.chapter}:${firstVerse.verseNumber}-${lastVerse.verseNumber}`
+                : `${firstVerse.bookName} ${firstVerse.chapter}:${firstVerse.verseNumber}`;
+
+            const text = sortedSelected.map(v =>
+                `${v.verseNumber}. ${v.primary}${isDualMode ? '\n' : ''}${isDualMode ? v.secondary : ''}`
+            ).join('\n\n');
+
+            const header = `📖 ${citation}\n${'━'.repeat(20)}\n\n`;
+            return `${header}${text}\n\n— Shared from Holy Bible App`;
+        } else if (activeVerseData) {
+            const header = `📖 ${activeVerseData.bookName} ${activeVerseData.chapter}:${activeVerseData.verseNumber}\n${'━'.repeat(20)}\n\n`;
+            const verseText = `${activeVerseData.primary}${isDualMode ? '\n' + activeVerseData.secondary : ''}`;
+            return `${header}${verseText}\n\n— Shared from Holy Bible App`;
+        }
+        return '';
+    };
+
+    const copyVerse = async () => {
+        const textToCopy = formatVersesForExport();
+        if (!textToCopy) return;
         await Clipboard.setStringAsync(textToCopy);
         Alert.alert(
             language === 'en' ? "Copied" : "కాపీ చేయబడింది",
-            language === 'en' ? "Verse copied to clipboard" : "వచనం క్లిప్‌బోర్డ్‌కు కాపీ చేయబడింది"
+            language === 'en' ? `Text copied to clipboard` : `పాఠ్యం క్లిప్‌బోర్డ్‌కు కాపీ చేయబడింది`
         );
+        setSelectedVerses([]);
+        setIsActionPanelVisible(false);
+    };
+
+    const shareVerse = async () => {
+        const textToShare = formatVersesForExport();
+        if (!textToShare) return;
+        try {
+            await Share.share({
+                message: textToShare,
+            });
+            setSelectedVerses([]);
+            setIsActionPanelVisible(false);
+        } catch (error) {
+            console.error(error);
+        }
     };
 
     const renderItem = ({ item, index }) => {
         const isSpeaking = speakingVerseIndex === index;
-        const highlightColor = highlights[item.id];
+        const rawHighlight = highlights[item.id];
+        const highlightColor = rawHighlight ? (oldColorMap[rawHighlight] || rawHighlight) : undefined;
         const isFavorited = favorites.includes(item.id);
         const isUnderlined = underlines.includes(item.id);
+        const isSelected = selectedVerses.includes(item.id);
 
         return (
-            <TouchableOpacity
-                onPress={() => toggleVerseOptions(index, item)}
-                activeOpacity={0.8}
+            <View
                 style={[
                     styles.verseItem,
                     {
-                        backgroundColor: isSpeaking ? colors.highlight : (highlightColor || 'transparent'),
-                        borderLeftColor: isFavorited ? colors.accent : 'transparent',
+                        backgroundColor: isSelected ? '#FFF176' : (isSpeaking ? colors.highlight : (highlightColor || 'transparent')),
+                        borderLeftColor: (isSelected || isFavorited) ? colors.accent : 'transparent',
                     }
                 ]}
             >
                 <View style={styles.verseRow}>
-                    <View style={[styles.vNumberBox, { backgroundColor: isSpeaking ? colors.accent : (isFavorited ? colors.accent : colors.highlight) }]}>
-                        <Text style={[styles.vNumberText, { color: (isSpeaking || isFavorited) ? '#FFF' : colors.verseNumber }]}>
-                            {item.verseNumber}
-                        </Text>
-                    </View>
+                    <TouchableOpacity
+                        onPress={() => {
+                            if (selectedVerses.length > 0) {
+                                handleVerseToggle(item.id);
+                            } else {
+                                toggleVerseOptions(index, item);
+                            }
+                        }}
+                        onLongPress={() => handleVerseToggle(item.id)}
+                        delayLongPress={300}
+                        activeOpacity={0.7}
+                        style={{ paddingRight: 4, paddingBottom: 10 }}
+                    >
+                        <View style={[styles.vNumberBox, { 
+                            backgroundColor: isSelected ? colors.accent : (isSpeaking || isFavorited ? colors.accent : colors.highlight),
+                            transform: [{ scale: isSelected ? 1.05 : 1 }]
+                        }]}>
+                            <Text style={[styles.vNumberText, { color: (isSelected || isSpeaking || isFavorited) ? '#FFF' : colors.verseNumber }]}>
+                                {isSelected ? '✓' : item.verseNumber}
+                            </Text>
+                        </View>
+                    </TouchableOpacity>
                     <View style={styles.vTextContainer}>
                         <Text
                             selectable={true}
+                            selectionColor="#FFF59D"
                             style={[
                                 styles.vPrimaryText,
-                                { color: colors.text },
+                                { color: (highlightColor || isSelected) ? '#1C1C1E' : colors.text },
                                 isUnderlined && { textDecorationLine: 'underline', textDecorationColor: colors.accent }
                             ]}
                         >
@@ -277,7 +385,8 @@ export default function ReadingScreen({ route }) {
                         {isDualMode && (
                             <Text
                                 selectable={true}
-                                style={[styles.vSecondaryText, { color: colors.secondaryText }]}
+                                selectionColor="#FFF59D"
+                                style={[styles.vSecondaryText, { color: (highlightColor || isSelected) ? '#3A3A3C' : colors.secondaryText }]}
                             >
                                 {item.secondary}
                             </Text>
@@ -288,7 +397,7 @@ export default function ReadingScreen({ route }) {
                         {isSpeaking && <View style={styles.speakingIndicator}><Text>🔊</Text></View>}
                     </View>
                 </View>
-            </TouchableOpacity>
+            </View>
         );
     };
 
@@ -328,59 +437,58 @@ export default function ReadingScreen({ route }) {
                 >
                     <View style={[styles.actionPanel, { backgroundColor: colors.card }]}>
                         <View style={styles.actionHeader}>
-                            <View style={[styles.vNumberBox, { backgroundColor: colors.accent, width: 40, height: 40 }]}>
-                                <Text style={[styles.vNumberText, { color: '#FFF' }]}>{activeVerseData?.verseNumber}</Text>
+                            <View style={[styles.vNumberBox, { backgroundColor: colors.accent }]}>
+                                <Text style={[styles.vNumberText, { color: '#FFF' }]}>
+                                    {selectedVerses.length > 0 ? '✓' : activeVerseData?.verseNumber}
+                                </Text>
                             </View>
-                            <Text style={[styles.actionTitle, { color: colors.text }]}>Verse Options</Text>
-                            <TouchableOpacity onPress={() => setIsActionPanelVisible(false)} style={styles.closeAction}>
+                            <Text style={[styles.actionTitle, { color: colors.text }]}>
+                                {selectedVerses.length > 0 ? `${selectedVerses.length} Verses Selected` : 'Verse Options'}
+                            </Text>
+                            <TouchableOpacity onPress={() => { setIsActionPanelVisible(false); setSelectedVerses([]); }}>
                                 <Text style={{ fontSize: 24, color: colors.secondaryText }}>✕</Text>
                             </TouchableOpacity>
                         </View>
 
-                        <Text style={[styles.actionLabel, { color: colors.secondaryText }]}>HIGHLIGHT COLOR</Text>
-                        <View style={styles.colorRow}>
-                            {['#FFEB3B', '#8BC34A', '#03A9F4', '#E91E63', '#9C27B0'].map((color) => (
-                                <TouchableOpacity
-                                    key={color}
-                                    style={[
-                                        styles.colorCircle,
-                                        { backgroundColor: color },
-                                        highlights[activeVerseData?.id] === color && { borderWidth: 3, borderColor: colors.accent }
-                                    ]}
-                                    onPress={() => toggleHighlight(activeVerseData.id, color)}
-                                />
-                            ))}
-                            <TouchableOpacity
-                                style={[styles.colorCircle, { backgroundColor: colors.highlight, justifyContent: 'center', alignItems: 'center' }]}
-                                onPress={() => toggleHighlight(activeVerseData.id, highlights[activeVerseData.id])}
-                            >
-                                <Text style={{ fontSize: 20 }}>🚫</Text>
-                            </TouchableOpacity>
-                        </View>
+                        {selectedVerses.length === 0 && (
+                            <>
+                                <Text style={[styles.actionLabel, { color: colors.secondaryText }]}>HIGHLIGHT COLOR</Text>
+                                <View style={styles.colorRow}>
+                                    {['#FFF59D', '#A5D6A7', '#90CAF9', '#EF9A9A', '#CE93D8'].map((color) => (
+                                        <TouchableOpacity
+                                            key={color}
+                                            style={[
+                                                styles.colorCircle,
+                                                { backgroundColor: color },
+                                                (highlights[activeVerseData?.id] === color || oldColorMap[highlights[activeVerseData?.id]] === color) && { borderWidth: 3, borderColor: colors.accent }
+                                            ]}
+                                            onPress={() => toggleHighlight(activeVerseData.id, color)}
+                                        />
+                                    ))}
+                                    <TouchableOpacity
+                                        style={[styles.colorCircle, { backgroundColor: colors.highlight, justifyContent: 'center', alignItems: 'center' }]}
+                                        onPress={() => toggleHighlight(activeVerseData.id, highlights[activeVerseData.id])}
+                                    >
+                                        <Text style={{ fontSize: 20 }}>🚫</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </>
+                        )}
 
                         <View style={styles.mainActionsRow}>
-                            <TouchableOpacity
-                                style={[styles.actionBtn, { backgroundColor: favorites.includes(activeVerseData?.id) ? colors.accent : colors.highlight }]}
-                                onPress={() => toggleFavorite(activeVerseData.id)}
-                            >
-                                <Text style={{ fontSize: 20 }}>{favorites.includes(activeVerseData?.id) ? '⭐' : '☆'}</Text>
-                                <Text style={[styles.actionBtnText, { color: favorites.includes(activeVerseData?.id) ? '#FFF' : colors.text }]}>Favorite</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={[styles.actionBtn, { backgroundColor: underlines.includes(activeVerseData?.id) ? colors.accent : colors.highlight }]}
-                                onPress={() => toggleUnderline(activeVerseData.id)}
-                            >
-                                <Text style={[{ fontSize: 20, fontWeight: '900', textDecorationLine: 'underline' }, underlines.includes(activeVerseData?.id) ? { color: '#FFF' } : { color: colors.text }]}>U</Text>
-                                <Text style={[styles.actionBtnText, { color: underlines.includes(activeVerseData?.id) ? '#FFF' : colors.text }]}>Underline</Text>
-                            </TouchableOpacity>
+                            {selectedVerses.length === 0 && (
+                                <TouchableOpacity
+                                    style={[styles.actionBtn, { backgroundColor: favorites.includes(activeVerseData?.id) ? colors.accent : colors.highlight }]}
+                                    onPress={() => toggleFavorite(activeVerseData.id)}
+                                >
+                                    <Text style={{ fontSize: 20 }}>{favorites.includes(activeVerseData?.id) ? '⭐' : '☆'}</Text>
+                                    <Text style={[styles.actionBtnText, { color: favorites.includes(activeVerseData?.id) ? '#FFF' : colors.text }]}>Favorite</Text>
+                                </TouchableOpacity>
+                            )}
 
                             <TouchableOpacity
                                 style={[styles.actionBtn, { backgroundColor: colors.highlight }]}
-                                onPress={() => {
-                                    copyVerse(activeVerseData);
-                                    setIsActionPanelVisible(false);
-                                }}
+                                onPress={copyVerse}
                             >
                                 <Text style={{ fontSize: 20 }}>📋</Text>
                                 <Text style={[styles.actionBtnText, { color: colors.text }]}>Copy</Text>
@@ -388,60 +496,102 @@ export default function ReadingScreen({ route }) {
 
                             <TouchableOpacity
                                 style={[styles.actionBtn, { backgroundColor: colors.highlight }]}
-                                onPress={() => {
-                                    setIsActionPanelVisible(false);
-                                    navigation.navigate('CommentaryList', {
-                                        bookIndex: bookIndex,
-                                        chapterIndex: chapterIndex,
-                                        verseNumber: activeVerseData?.verseNumber,
-                                        autoJump: true
-                                    });
-
-                                }}
+                                onPress={shareVerse}
                             >
-                                <Text style={{ fontSize: 20 }}>📚</Text>
-                                <Text style={[styles.actionBtnText, { color: colors.text }]}>Study</Text>
+                                <Text style={{ fontSize: 20 }}>🔗</Text>
+                                <Text style={[styles.actionBtnText, { color: colors.text }]}>Share</Text>
                             </TouchableOpacity>
                         </View>
 
 
-                        <View style={[styles.drawerDivider, { backgroundColor: colors.border, marginVertical: 20 }]} />
+                        {selectedVerses.length === 0 && (
+                            <>
+                                <View style={[styles.drawerDivider, { backgroundColor: colors.border, marginVertical: 20 }]} />
+                                <Text style={[styles.actionLabel, { color: colors.secondaryText, marginBottom: 12 }]}>CROSS REFERENCES</Text>
+                                
+                                <ScrollView 
+                                    style={{ maxHeight: 280 }} 
+                                    showsVerticalScrollIndicator={true}
+                                    indicatorStyle={theme === 'dark' ? 'white' : 'black'}
+                                >
+                                    {crossRefs.length === 0 ? (
+                                        <View style={styles.emptyRefContainer}>
+                                            <Text style={[styles.emptyRef, { color: colors.secondaryText }]}>
+                                                No cross references found for this verse.
+                                            </Text>
+                                        </View>
+                                    ) : (
+                                        crossRefs && crossRefs.length > 0 ? (
+                                            crossRefs.map((ref, idx) => {
+                                                if (!ref) return null;
+                                                // Look up the verse text for preview
+                                                const targetBookName = ref.book;
+                                                const targetBookIndex = ENGLISH_BOOKS.indexOf(targetBookName);
+                                                let previewText = '';
+                                                let displayBookName = targetBookName;
+                                                
+                                                if (targetBookIndex >= 0) {
+                                                    const bookData = getBookData(targetBookIndex, language);
+                                                    displayBookName = language === 'te' ? TELUGU_BOOKS[targetBookIndex] : targetBookName;
+                                                    
+                                                    if (bookData && bookData.Chapter && bookData.Chapter[ref.chapter - 1]) {
+                                                        const verseData = bookData.Chapter[ref.chapter - 1].Verse[ref.verse - 1];
+                                                        if (verseData) {
+                                                            previewText = verseData.Verse;
+                                                        }
+                                                    }
+                                                }
 
-                        <Text style={[styles.actionLabel, { color: colors.secondaryText, marginBottom: 10 }]}>CROSS REFERENCES</Text>
-                        <ScrollView style={{ maxHeight: 200 }} showsVerticalScrollIndicator={false}>
-                            {crossRefs && crossRefs.length > 0 ? (
-                                crossRefs.map((ref, idx) => (
-                                    <TouchableOpacity
-                                        key={idx}
-                                        onPress={() => {
-                                            setIsActionPanelVisible(false);
-                                            const targetBookIndex = ENGLISH_BOOKS.indexOf(ref.book);
-                                            if (targetBookIndex >= 0) {
-                                                navigation.push('Reading', {
-                                                    bookIndex: targetBookIndex,
-                                                    chapterIndex: ref.chapter - 1,
-                                                    bookName: ref.book
-                                                });
-                                            }
-                                        }}
-                                        style={[styles.refLink, { borderBottomColor: colors.border }]}
-                                    >
-                                        <View style={styles.refLinkInner}>
-                                            <View style={[styles.refIconBox, { backgroundColor: colors.highlight }]}>
-                                                <Text style={{ fontSize: 14 }}>🔗</Text>
-                                            </View>
-                                            <View style={{ flex: 1 }}>
-                                                <Text style={[styles.refTitle, { color: colors.text }]}>
-                                                    {ref.book} {ref.chapter}:{ref.verse}
+                                                return (
+                                                    <TouchableOpacity
+                                                        key={idx}
+                                                        onPress={() => {
+                                                            setIsActionPanelVisible(false);
+                                                            if (targetBookIndex >= 0) {
+                                                                navigation.push('Reading', {
+                                                                    bookIndex: targetBookIndex,
+                                                                    chapterIndex: ref.chapter - 1,
+                                                                    bookName: displayBookName,
+                                                                    verseIndex: ref.verse - 1
+                                                                });
+                                                            }
+                                                        }}
+                                                        style={[styles.refLinkContainer, { backgroundColor: colors.highlight, borderColor: colors.border }]}
+                                                    >
+                                                        <View style={styles.refHeaderRow}>
+                                                            <View style={[styles.refIconCircle, { backgroundColor: colors.accent }]}>
+                                                                <Text style={{ fontSize: 10, color: '#FFF' }}>🔗</Text>
+                                                            </View>
+                                                            <Text style={[styles.refTitleText, { color: colors.text }]}>
+                                                                {displayBookName} {ref.chapter}:{ref.verse}
+                                                            </Text>
+                                                        </View>
+                                                        {previewText ? (
+                                                            <Text style={[styles.refBodyText, { color: colors.secondaryText }]} numberOfLines={3}>
+                                                                "{previewText}"
+                                                            </Text>
+                                                        ) : (
+                                                            ref.text ? (
+                                                                <Text style={[styles.refBodyText, { color: colors.secondaryText }]} numberOfLines={3}>
+                                                                    "{ref.text}"
+                                                                </Text>
+                                                            ) : null
+                                                        )}
+                                                    </TouchableOpacity>
+                                                );
+                                            })
+                                        ) : (
+                                            <View style={styles.emptyRefContainer}>
+                                                <Text style={{ fontSize: 32, marginBottom: 8, opacity: 0.5 }}>📖</Text>
+                                                <Text style={[styles.emptyRef, { color: colors.secondaryText }]}>
+                                                    No specific cross references found for this verse.
                                                 </Text>
                                             </View>
-                                        </View>
-                                    </TouchableOpacity>
-                                ))
-                            ) : (
-                                <Text style={[styles.emptyRef, { color: colors.secondaryText }]}>No cross references.</Text>
-                            )}
-                        </ScrollView>
+                                        )
+                                    )}
+                                </ScrollView>
+                            </>
+                        )}
                     </View>
                 </TouchableOpacity>
             </Modal>
@@ -579,37 +729,44 @@ const styles = StyleSheet.create({
         fontWeight: '900',
         letterSpacing: 1.5,
     },
-    refLink: {
-        paddingVertical: 12,
-        borderBottomWidth: 1,
+    refLinkContainer: {
+        padding: 16,
+        borderRadius: 16,
+        marginBottom: 10,
+        borderWidth: 1,
     },
-    refLinkInner: {
+    refHeaderRow: {
         flexDirection: 'row',
         alignItems: 'center',
+        marginBottom: 6,
     },
-    refIconBox: {
-        width: 32,
-        height: 32,
-        borderRadius: BORDER_RADIUS.sm,
+    refIconCircle: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 12,
+        marginRight: 10,
     },
-    refTitle: {
-        fontSize: 16,
+    refTitleText: {
+        fontSize: 15,
         fontWeight: '800',
     },
-    refText: {
-        fontSize: 14,
-        marginTop: 4,
-        lineHeight: 20,
-        fontWeight: '500',
+    refBodyText: {
+        fontSize: 13,
+        lineHeight: 18,
+        fontStyle: 'italic',
+        opacity: 0.8,
+    },
+    emptyRefContainer: {
+        padding: 30,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     emptyRef: {
         fontSize: 14,
-        fontStyle: 'italic',
         textAlign: 'center',
-        paddingVertical: 10,
+        fontWeight: '500',
     },
     headerIconCircle: {
         width: 38,

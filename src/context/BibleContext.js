@@ -10,8 +10,9 @@ export const BibleProvider = ({ children }) => {
     const [themeMode, setThemeMode] = useState('light'); // 'light' or 'dark'
     const [loading, setLoading] = useState(true);
     const [bibleData, setBibleData] = useState({ en: null, te: null });
-    const [commentaryData, setCommentaryData] = useState([]);
-    const [crossReferenceData, setCrossReferenceData] = useState([]);
+    const [commentaryData, setCommentaryData] = useState(null);
+    const [crossReferenceData, setCrossReferenceData] = useState(null);
+    const [crossRefIndex, setCrossRefIndex] = useState({}); // New pre-calculated index
     const [childrenStories, setChildrenStories] = useState([]);
     const [songs, setSongs] = useState([]);
     const [dailyBreadRead, setDailyBreadRead] = useState(false);
@@ -41,8 +42,6 @@ export const BibleProvider = ({ children }) => {
     }, []);
 
     const loadSettingsAndData = async () => {
-        // Force loading to false after a tiny delay to show the brand
-        setTimeout(() => setLoading(false), 500);
 
         try {
             // Background load settings
@@ -88,30 +87,37 @@ export const BibleProvider = ({ children }) => {
                 }
             }
 
-            // Background load sacred texts after home screen is ready
-            setTimeout(() => {
-                console.log("Loading sacred texts in background...");
-                try {
-                    const commData = require('../../assets/data/commentary.json');
-                    const kidsData = require('../../assets/data/children_stories.json');
-                    const songsData = require('../../assets/data/songs.json');
-                    const xrefData = require('../../assets/data/cross_references.json');
+            // Background load sacred texts immediately
+            console.log("Loading sacred texts...");
+            try {
+                // Pre-load commentary, stories, songs, and xrefs in parallel
+                // Using individual try-catches or checks if needed, but for now simple loading
+                const [commData, kidsData, songsData, xrefData, enData, teData] = [
+                    require('../../assets/data/commentary.json'),
+                    require('../../assets/data/children_stories.json'),
+                    require('../../assets/data/songs.json'),
+                    require('../../assets/data/cross_references_full.json'),
+                    require('../../assets/data/english_bible.json'),
+                    require('../../assets/data/telugu_bible.json')
+                ];
 
-                    setCommentaryData(commData);
-                    setChildrenStories(kidsData);
-                    setSongs(songsData);
-                    setCrossReferenceData(xrefData);
+                setCommentaryData(commData);
+                setChildrenStories(kidsData);
+                setSongs(songsData);
+                setCrossReferenceData(xrefData);
+                setBibleData({ en: enData, te: teData });
 
-                    // Load heavy Bible volumes
-                    const enData = require('../../assets/data/english_bible.json');
-                    const teData = require('../../assets/data/telugu_bible.json');
-                    setBibleData({ en: enData, te: teData });
-
-                    console.log("Background load complete.");
-                } catch (err) {
-                    console.warn("Background load deferred or failed:", err);
+                // Pre-index English cross-references for instant lookup
+                if (xrefData && xrefData.cross_references) {
+                    setCrossRefIndex(xrefData.cross_references);
                 }
-            }, 1000);
+
+                console.log("Load complete.");
+                setLoading(false); // Only stop loading once everything is in memory
+            } catch (err) {
+                console.warn("Library load failed:", err);
+                setLoading(false); // Stop loading even on failure to avoid infinite screen
+            }
         } catch (e) {
             console.error("Context initialization error:", e);
             setLoading(false);
@@ -170,44 +176,28 @@ export const BibleProvider = ({ children }) => {
     };
 
     const getCrossReferences = (bookName, chapter, verse) => {
-        if (!crossReferenceData) return [];
-
-        // 1. References defined FOR this verse (Forward)
-        const forwardEntry = crossReferenceData.find(c =>
-            c.book === bookName &&
-            c.chapter === chapter &&
-            c.verse === verse
-        );
-        const forwardRefs = forwardEntry ? forwardEntry.references : [];
-
-        // 2. References that POINT TO this verse (Backward)
-        const backwardRefs = crossReferenceData.filter(c =>
-            c.references.some(r =>
-                r.book === bookName &&
-                r.chapter === chapter &&
-                r.verse === verse
-            )
-        ).map(c => ({
-            book: c.book,
-            chapter: c.chapter,
-            verse: c.verse,
-            text: `Cross-referenced from ${c.book} ${c.chapter}:${c.verse}`
-        }));
-
-        // Merge and ensure uniqueness by Book-Chapter-Verse
-        const allRefs = [...forwardRefs, ...backwardRefs];
-        const uniqueRefs = [];
-        const seen = new Set();
-
-        for (const ref of allRefs) {
-            const key = `${ref.book}-${ref.chapter}-${ref.verse}`;
-            if (!seen.has(key)) {
-                seen.add(key);
-                uniqueRefs.push(ref);
-            }
+        // Determine the English book name for the lookup key
+        let englishBookName = bookName;
+        if (TELUGU_BOOKS.includes(bookName)) {
+            const teIndex = TELUGU_BOOKS.indexOf(bookName);
+            if (teIndex !== -1) englishBookName = ENGLISH_BOOKS[teIndex];
         }
 
-        return uniqueRefs;
+        const mappedBookName = englishBookName === 'Psalms' ? 'Psalm' : englishBookName;
+        const verseKey = `${mappedBookName} ${chapter}:${verse}`;
+        
+        // Use the pre-calculated index for zero-latency lookup
+        const entries = crossRefIndex[verseKey] || [];
+        return entries.map(ref => {
+            const match = ref.to.match(/^(.+)\s(\d+):(\d+)$/);
+            return match ? {
+                book: match[1],
+                chapter: parseInt(match[2]),
+                verse: parseInt(match[3]),
+                votes: ref.votes,
+                type: 'forward'
+            } : null;
+        }).filter(Boolean).sort((a, b) => (b.votes || 0) - (a.votes || 0)).slice(0, 15);
     };
 
     const searchBible = (query, lang = language) => {

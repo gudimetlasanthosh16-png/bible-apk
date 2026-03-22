@@ -85,3 +85,34 @@ export const getAIResponse = async (userPrompt, chatHistory = [], language = 'en
         };
     }
 };
+
+/**
+ * Divine Translator: Local Heuristics + Public Web API
+ */
+export const translateText = async (text, targetLang = 'te') => {
+    try {
+        if (!text) return "";
+
+        // Clean text (remove excessive newlines for better API performance)
+        const cleanText = text.replace(/\s+/g, ' ').trim();
+
+        const response = await fetch(
+            `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(cleanText)}`
+        );
+
+        if (!response.ok) throw new Error("Translation service busy");
+
+        const data = await response.json();
+
+        // Extract all translated segments
+        let translated = "";
+        if (data && data[0]) {
+            translated = data[0].map(item => item[0]).join("");
+        }
+
+        return translated || text;
+    } catch (error) {
+        console.error("Translation Error:", error);
+        return text; // Fallback to original
+    }
+};
