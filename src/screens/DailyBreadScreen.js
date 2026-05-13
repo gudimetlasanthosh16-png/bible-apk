@@ -1,22 +1,122 @@
-import React, { useContext } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useContext, useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BibleContext } from '../context/BibleContext';
 import { DAILY_BREAD } from '../constants/daily_bread';
 import { SHADOWS, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { getAIResponse } from '../services/AIService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function DailyBreadScreen({ route, navigation }) {
-    const { colors, language, theme, markDailyBreadRead } = useContext(BibleContext);
+    const { colors, language, theme, markDailyBreadRead, bibleData } = useContext(BibleContext);
+    const [bread, setBread] = useState(null);
+    const [loading, setLoading] = useState(true);
 
-    // Get verse ID from params or pick a random one
-    const [bread] = React.useState(() => {
-        const id = route.params?.id;
-        if (id) {
-            return DAILY_BREAD.find(b => b.id === id) || DAILY_BREAD[0];
-        }
-        const randomIndex = Math.floor(Math.random() * DAILY_BREAD.length);
-        return DAILY_BREAD[randomIndex];
-    });
+    useEffect(() => {
+        const loadDailyBread = async () => {
+            setLoading(true);
+            try {
+                // 1. Determine day of year
+                const now = new Date();
+                const start = new Date(now.getFullYear(), 0, 0);
+                const diff = now - start;
+                const oneDay = 1000 * 60 * 60 * 24;
+                const dayOfYear = Math.floor(diff / oneDay);
+                const cacheKey = `daily_bread_${now.getFullYear()}_${dayOfYear}`;
+
+                // 2. Check local cache first
+                const cached = await AsyncStorage.getItem(cacheKey);
+                if (cached) {
+                    setBread(JSON.parse(cached));
+                    setLoading(false);
+                    return;
+                }
+
+                // 3. Check if we have it in static constants (for the first few days/fallback)
+                const staticBread = DAILY_BREAD.find(b => parseInt(b.id) === dayOfYear);
+                if (staticBread) {
+                    setBread(staticBread);
+                    await AsyncStorage.setItem(cacheKey, JSON.stringify(staticBread));
+                    setLoading(false);
+                    return;
+                }
+
+                // 4. Generate Dynamically using AI
+                if (bibleData && bibleData.en) {
+                    // Pick a prominent verse using the day number as a seed
+                    // We'll pick from a list of 'fav' books to ensure quality
+                    const books = [0, 18, 22, 39, 42, 44, 49, 57]; // Genesis, Psalms, Isaiah, Matthew, John, Romans, Ephesians, Hebrews
+                    const bookIdx = books[dayOfYear % books.length];
+                    const book = bibleData.en.Book[bookIdx];
+                    const chapterIdx = dayOfYear % book.Chapter.length;
+                    const verseIdx = dayOfYear % book.Chapter[chapterIdx].Verse.length;
+                    const verseObj = book.Chapter[chapterIdx].Verse[verseIdx];
+
+                    const verseText = verseObj.Verse;
+                    const ref = `${book.BookName} ${chapterIdx + 1}:${verseObj.Verseid}`;
+
+                    // Fetch Telugu version
+                    let verseTe = verseText;
+                    let refTe = ref;
+                    if (bibleData.te && bibleData.te.Book[bookIdx]) {
+                        const teBook = bibleData.te.Book[bookIdx];
+                        const teVerse = teBook.Chapter[chapterIdx].Verse[verseIdx];
+                        verseTe = teVerse.Verse;
+                        refTe = `${teBook.BookName} ${chapterIdx + 1}:${teVerse.Verseid}`;
+                    }
+
+                    // Request AI to generate Summary and Prayer
+                    const aiPrompt = `Generate a Daily Bread devotional for this verse: "${verseText}" (${ref}). 
+                    Provide:
+                    1. A 2-sentence spiritual summary in English.
+                    2. A 2-sentence spiritual summary in Telugu.
+                    3. A short heart-felt prayer in English.
+                    4. A short heart-felt prayer in Telugu.
+                    
+                    Format your response EXACTLY as JSON like this:
+                    {"summary_en": "...", "summary_te": "...", "prayer_en": "...", "prayer_te": "..."}`;
+
+                    const aiResponse = await getAIResponse(aiPrompt, [], 'en', null);
+                    let generated = null;
+                    try {
+                        // Extract JSON from AI response
+                        const jsonMatch = aiResponse.text.match(/\{.*\}/s);
+                        if (jsonMatch) {
+                            generated = JSON.parse(jsonMatch[0]);
+                        }
+                    } catch (e) {
+                        console.error("AI Daily Bread Parse Error:", e);
+                    }
+
+                    const finalBread = {
+                        id: dayOfYear.toString(),
+                        verse: verseText,
+                        ref: ref,
+                        verse_te: verseTe,
+                        ref_te: refTe,
+                        summary_en: generated?.summary_en || "Let this verse guide your heart today.",
+                        summary_te: generated?.summary_te || "ఈ వచనం ఈ రోజు మీ హృదయాన్ని నడిపించనివ్వండి.",
+                        prayer_en: generated?.prayer_en || "Lord, thank You for Your word. Guide me today. Amen.",
+                        prayer_te: generated?.prayer_te || "ప్రభువా, నీ వాక్యానికి వందనాలు. ఈ రోజు నన్ను నడిపించు. ఆమేన్.",
+                        related_verses: []
+                    };
+
+                    setBread(finalBread);
+                    await AsyncStorage.setItem(cacheKey, JSON.stringify(finalBread));
+                } else {
+                    // Fallback if no bible data
+                    setBread(DAILY_BREAD[0]);
+                }
+            } catch (error) {
+                console.error("Daily Bread Loading Error:", error);
+                setBread(DAILY_BREAD[0]);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadDailyBread();
+    }, [bibleData]);
 
     const handleAmen = async () => {
         if (markDailyBreadRead) {
@@ -24,6 +124,17 @@ export default function DailyBreadScreen({ route, navigation }) {
         }
         navigation.goBack();
     };
+
+    if (loading || !bread) {
+        return (
+            <SafeAreaView style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color={colors.accent} />
+                <Text style={{ marginTop: 20, color: colors.accent, fontWeight: '700' }}>
+                    Preparing your daily bread...
+                </Text>
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
@@ -63,20 +174,6 @@ export default function DailyBreadScreen({ route, navigation }) {
                     >
                         {language === 'en' ? bread.summary_en : bread.summary_te}
                     </Text>
-                </View>
-
-                {/* Related Verses */}
-                <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: colors.accent }]}>
-                        {language === 'en' ? 'RELATED VERSES' : 'సంబంధిత వచనాలు'}
-                    </Text>
-                    <View style={styles.refsContainer}>
-                        {bread.related_verses.map((v, i) => (
-                            <View key={i} style={[styles.refPill, { backgroundColor: colors.highlight }]}>
-                                <Text style={[styles.refPillText, { color: colors.text }]}>{v}</Text>
-                            </View>
-                        ))}
-                    </View>
                 </View>
 
                 {/* Prayer Section */}
@@ -209,3 +306,4 @@ const styles = StyleSheet.create({
         letterSpacing: 6,
     }
 });
+

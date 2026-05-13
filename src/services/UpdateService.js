@@ -1,33 +1,60 @@
 import { Alert, Linking } from 'react-native';
 import Constants from 'expo-constants';
-const UPDATE_CONFIG_URL = 'https://raw.githubusercontent.com/gudimetlasanthosh16-png/bible-apk/main/update.json';
+const GITHUB_API_URL = 'https://api.github.com/repos/gudimetlasanthosh16-png/bible-apk/releases/latest';
+const CURRENT_APP_VERSION = '2.1.0'; // Hardcoded fallback match for app.json
 let hasShownUpdateThisSession = false;
 
 export const checkForUpdates = async () => {
     if (hasShownUpdateThisSession) return null;
 
     try {
-        const response = await fetch(UPDATE_CONFIG_URL + '?t=' + Date.now());
+        // Add cache buster timestamp to GitHub API call
+        const response = await fetch(`${GITHUB_API_URL}?t=${Date.now()}`, {
+            headers: {
+                'Accept': 'application/vnd.github.v3+json',
+                'User-Agent': 'Bible-App-Update-Checker'
+            }
+        });
+        
+        if (!response.ok) {
+            console.log("GitHub API returned non-OK status:", response.status);
+            return null;
+        }
+        
         const data = await response.json();
+        
+        if (!data || !data.tag_name) return null;
+        
+        // GitHub uses tags like 'v2.1.1'
+        const latestVersion = data.tag_name.replace('v', '').replace('V', '');
+        
+        // Use Constants but fallback to our hardcoded current version
+        const currentVersion = Constants.expoConfig?.version || Constants.manifest?.version || CURRENT_APP_VERSION;
 
-        // Get current version from app.json / Constants
-        const currentVersion = Constants.expoConfig?.version || Constants.manifest?.version || '1.0.1';
+        console.log(`Update Logic: Client(${currentVersion}) vs Server(${latestVersion})`);
 
-        console.log(`Checking version: App(${currentVersion}) vs Server(${data.latestVersion})`);
-
-        if (isVersionHigher(data.latestVersion, currentVersion)) {
+        if (isVersionHigher(latestVersion, currentVersion)) {
             hasShownUpdateThisSession = true;
-            return data;
+            
+            // Find APK asset in the release if present, otherwise use the release page URL
+            const apkAsset = data.assets?.find(a => a.name.toLowerCase().endsWith('.apk'));
+            
+            return {
+                latestVersion,
+                message: data.body || "A new sacred update is available with improvements.",
+                updateUrl: apkAsset ? apkAsset.browser_download_url : data.html_url
+            };
         }
         return null;
     } catch (error) {
+        console.warn("Auto-update check failed:", error);
         return null;
     }
 };
 
 /**
  * Simple version comparison
- * 1.0.1 > 1.0.0
+ * 2.1.1 > 2.1.0
  */
 function isVersionHigher(latest, current) {
     const latestParts = latest.split('.').map(Number);

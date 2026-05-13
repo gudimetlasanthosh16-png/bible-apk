@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, StatusBar, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BibleContext } from '../context/BibleContext';
 import { ENGLISH_BOOKS, TELUGU_BOOKS } from '../constants/books';
@@ -7,9 +7,9 @@ import { SHADOWS, SPACING, BORDER_RADIUS } from '../constants/theme';
 
 export default function ChapterSelectionScreen({ route, navigation }) {
     const { bookIndex } = route.params;
-    const { getBookData, language, colors, theme } = useContext(BibleContext);
+    const { getBookData, language, colors, theme, bibleData } = useContext(BibleContext);
 
-    const bookData = getBookData(bookIndex, 'en');
+    const bookData = getBookData(bookIndex, language);
 
     const chapterCount = bookData && bookData.Chapter ? bookData.Chapter.length : 0;
     const chapters = Array.from({ length: chapterCount }, (_, i) => i + 1);
@@ -36,28 +36,41 @@ export default function ChapterSelectionScreen({ route, navigation }) {
             <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.headerBackground} />
 
             <View style={[styles.selHeader, { backgroundColor: colors.headerBackground, borderBottomColor: colors.border }]}>
-                <Text style={[styles.selTitle, { color: colors.accent }]}>
-                    {language === 'te' ? TELUGU_BOOKS[bookIndex] : ENGLISH_BOOKS[bookIndex]}
-                </Text>
-                <Text style={[styles.selSubtitle, { color: colors.secondaryText }]}>
-                    {language === 'te' ? ENGLISH_BOOKS[bookIndex] : TELUGU_BOOKS[bookIndex]}
-                </Text>
-                <View style={[styles.selBadge, { backgroundColor: colors.highlight }]}>
-                    <Text style={[styles.selBadgeText, { color: colors.accent }]}>
-                        {chapterCount} CHAPTERS
+                <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backBtn, { backgroundColor: colors.highlight }]}>
+                    <Text style={{ fontSize: 20, color: colors.accent, fontWeight: '900' }}>←</Text>
+                </TouchableOpacity>
+                <View style={styles.headerTextContainer}>
+                    <Text style={[styles.selTitle, { color: colors.text }]}>
+                        {language === 'te' ? TELUGU_BOOKS[bookIndex] : ENGLISH_BOOKS[bookIndex]}
                     </Text>
+                    <Text style={[styles.selSubtitle, { color: colors.secondaryText }]}>
+                        {language === 'te' ? ENGLISH_BOOKS[bookIndex] : TELUGU_BOOKS[bookIndex]}
+                    </Text>
+                </View>
+                <View style={[styles.selBadge, { backgroundColor: colors.accent }]}>
+                    <Text style={[styles.selBadgeText, { color: '#FFF' }]}>
+                        {chapterCount}
+                    </Text>
+                    <Text style={[styles.selBadgeSub, { color: 'rgba(255,255,255,0.7)' }]}>CH</Text>
                 </View>
             </View>
 
-            <FlatList
-                data={chapters}
-                renderItem={renderItem}
-                keyExtractor={(item) => item.toString()}
-                numColumns={4}
-                contentContainerStyle={styles.selGrid}
-                columnWrapperStyle={styles.selRow}
-                showsVerticalScrollIndicator={false}
-            />
+            {chapterCount === 0 ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={colors.accent} />
+                    <Text style={[styles.loadingText, { color: colors.secondaryText }]}>Loading Chapters...</Text>
+                </View>
+            ) : (
+                <FlatList
+                    data={chapters}
+                    renderItem={renderItem}
+                    keyExtractor={(item) => item.toString()}
+                    numColumns={4}
+                    contentContainerStyle={styles.selGrid}
+                    columnWrapperStyle={styles.selRow}
+                    showsVerticalScrollIndicator={false}
+                />
+            )}
         </SafeAreaView>
     );
 }
@@ -67,52 +80,80 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     selHeader: {
-        paddingVertical: 32,
-        paddingHorizontal: SPACING.lg,
+        flexDirection: 'row',
+        paddingVertical: 24,
+        paddingHorizontal: SPACING.md,
         alignItems: 'center',
         borderBottomWidth: 1,
     },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 40,
+    },
+    loadingText: {
+        marginTop: 16,
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    backBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 16,
+    },
+    headerTextContainer: {
+        flex: 1,
+    },
     selTitle: {
-        fontSize: 32,
+        fontSize: 28,
         fontWeight: '900',
-        marginBottom: 4,
-        textAlign: 'center',
+        marginBottom: 2,
         letterSpacing: -0.5,
     },
     selSubtitle: {
-        fontSize: 16,
-        fontWeight: '700',
-        opacity: 0.6,
-        marginBottom: 16,
+        fontSize: 14,
+        fontWeight: '600',
+        opacity: 0.8,
     },
     selBadge: {
+        alignItems: 'center',
+        justifyContent: 'center',
         paddingHorizontal: 16,
-        paddingVertical: 6,
-        borderRadius: BORDER_RADIUS.full,
+        paddingVertical: 10,
+        borderRadius: BORDER_RADIUS.md,
     },
     selBadgeText: {
-        fontSize: 11,
+        fontSize: 20,
         fontWeight: '900',
-        letterSpacing: 1.5,
+    },
+    selBadgeSub: {
+        fontSize: 10,
+        fontWeight: '800',
+        letterSpacing: 1,
     },
     selGrid: {
         padding: SPACING.md,
         paddingBottom: 40,
     },
     selRow: {
-        justifyContent: 'space-between',
+        justifyContent: 'flex-start',
         marginBottom: SPACING.md,
+        gap: '4%',
     },
     chapterSquare: {
         width: '22%',
         aspectRatio: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        borderRadius: BORDER_RADIUS.md,
-        borderWidth: 1,
+        borderRadius: BORDER_RADIUS.lg,
+        borderWidth: 1.5,
     },
     chapterNumber: {
-        fontSize: 22,
+        fontSize: 24,
         fontWeight: '900',
     },
 });

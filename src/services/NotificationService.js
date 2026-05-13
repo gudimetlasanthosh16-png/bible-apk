@@ -25,10 +25,17 @@ export const requestNotificationPermissions = async () => {
     if (finalStatus !== 'granted') return false;
 
     if (Platform.OS === 'android') {
-        Notifications.setNotificationChannelAsync('daily-bread', {
+        await Notifications.setNotificationChannelAsync('daily-bread', {
             name: 'Daily Bread',
             importance: Notifications.AndroidImportance.MAX,
             vibrationPattern: [0, 250, 250, 250],
+            lightColor: '#D4AF37',
+        });
+
+        await Notifications.setNotificationChannelAsync('app-updates', {
+            name: 'App Updates',
+            importance: Notifications.AndroidImportance.HIGH,
+            vibrationPattern: [0, 500, 250, 500],
             lightColor: '#D4AF37',
         });
     }
@@ -71,4 +78,18 @@ export const scheduleDailyNotifications = async () => {
     });
 
     console.log("Daily notifications scheduled for 5 AM and 6 PM");
+};
+
+export const showUpdateNotification = async (version) => {
+    await Notifications.scheduleNotificationAsync({
+        content: {
+            title: "✨ Sacred Update Available",
+            body: `Version v${version} is now ready for your spiritual journey. Click to download the latest edition.`,
+            data: { screen: 'Update', version }, // In-app handling can use this data
+            sound: true,
+            priority: Notifications.AndroidNotificationPriority.HIGH,
+            channelId: 'app-updates',
+        },
+        trigger: null, // Display immediately
+    });
 };

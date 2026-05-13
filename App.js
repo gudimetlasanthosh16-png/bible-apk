@@ -66,7 +66,7 @@ function AppContent() {
 
         {/* Sacred Logo - Plain Centered */}
         <Image
-          source={require('./assets/holy_bible_logo.jpg')}
+          source={require('./assets/holy_bible_logo.png')}
           style={{ width: 240, height: 240 }}
           resizeMode="contain"
         />

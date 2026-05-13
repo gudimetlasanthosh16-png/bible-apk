@@ -1,25 +1,36 @@
 {
   "expo": {
-    "name": "Holy Bible",
-    "slug": "holy-bible",
+    "name": "Holy Bible: Sacred Edition",
+    "slug": "holy-bible-sacred",
     "version": "2.1.0",
     "orientation": "portrait",
-    "icon": "./assets/holy_bible_logo.jpg",
+    "icon": "./assets/holy_bible_logo.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/holy_bible_logo.jpg",
+      "image": "./assets/holy_bible_logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.holybible.telugu",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Allow Holy Bible to access your photos to save sacred wallpapers."
+      }
     },
     "android": {
       "package": "com.holybible.telugu",
       "versionCode": 7,
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "POST_NOTIFICATIONS"
+      ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/holy_bible_logo.jpg",
+        "foregroundImage": "./assets/holy_bible_logo.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true

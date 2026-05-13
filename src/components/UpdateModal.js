@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { View, Text, Modal, TouchableOpacity, StyleSheet, Dimensions, Animated, Linking } from 'react-native';
 import { BibleContext } from '../context/BibleContext';
 import { checkForUpdates } from '../services/UpdateService';
+import { showUpdateNotification } from '../services/NotificationService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -17,7 +18,11 @@ export default function UpdateModal() {
             const data = await checkForUpdates();
             if (data) {
                 setUpdateData(data);
-                // Brief delay to ensure app is ready
+
+                // Show system notification as well
+                await showUpdateNotification(data.latestVersion);
+
+                // Brief delay to ensure app is ready for visual modal
                 setTimeout(() => {
                     setVisible(true);
                     Animated.parallel([

@@ -79,11 +79,14 @@ const MainStack = () => {
         headerStyle: {
             backgroundColor: colors.headerBackground,
         },
-        headerTintColor: colors.headerTitle,
+        headerTintColor: colors.text,
         headerTitleStyle: {
-            fontWeight: 'bold',
+            fontWeight: '900',
+            fontSize: 20,
+            letterSpacing: -0.5,
         },
-        headerShadowVisible: false,
+        headerShadowVisible: true,
+        headerTitleAlign: 'center',
         contentStyle: {
             backgroundColor: colors.background,
         },
@@ -106,15 +109,9 @@ const MainStack = () => {
                 <Stack.Screen
                     name="Home"
                     component={HomeScreen}
-                    options={({ navigation }) => ({
-                        title: 'Holy Bible',
-                        headerRight: () => (
-                            // We need a way to communicate with HomeScreen to open the menu.
-                            // Since we can't pass props down easily to the header from the screen without setOptions,
-                            // we'll leave the onPress empty here and handle it inside HomeScreen using setOptions
-                            null
-                        )
-                    })}
+                    options={{
+                        headerShown: false,
+                    }}
                 />
                 <Stack.Screen
                     name="ChapterSelection"

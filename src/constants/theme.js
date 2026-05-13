@@ -1,46 +1,50 @@
 export const COLORS = {
     light: {
-        background: '#FFFBFA', // Soft ivory/white
+        background: '#F8F9FA', // Modern ultra-light grey/white
         headerBackground: '#FFFFFF',
-        text: '#2C1810', // Deep warm charcoal
-        secondaryText: '#5D4037', // Darker for better contrast (was #7A6B65)
-        highlight: '#FFF9E6', // Very soft gold highlight
-        accent: '#D4AF37', // Premium Gold
+        text: '#111827', // Crisp dark gray
+        secondaryText: '#6B7280', // Tailwind gray-500
+        highlight: '#EEF2FF', // Soft indigo highlight
+        accent: '#4F46E5', // Vibrant Indigo
         card: '#FFFFFF',
-        border: '#F1E9E6',
-        verseNumber: '#A08020', // Aged gold
-        shadow: 'rgba(212, 175, 55, 0.1)',
-        headerTitle: '#2C1810',
+        border: '#E5E7EB', // Soft border
+        verseNumber: '#4F46E5', 
+        shadow: 'rgba(79, 70, 229, 0.15)',
+        headerTitle: '#111827',
+        gradientStart: '#4F46E5',
+        gradientEnd: '#7C3AED',
     },
     dark: {
-        background: '#0F0F0F', // Midnight
-        headerBackground: '#1A1A1A',
-        text: '#F5F5DC', // Creamy white
-        secondaryText: '#C1B4AC', // Lighter for better contrast in dark mode (was #A09990)
-        highlight: '#2A261F', // Deep warm highlight
-        accent: '#FFD700', // Bright Gold
-        card: '#1A1A1A',
-        border: '#2C2621',
+        background: '#0B0F19', // Deep modern midnight
+        headerBackground: '#111827',
+        text: '#F9FAFB', 
+        secondaryText: '#9CA3AF', 
+        highlight: '#1F2937', 
+        accent: '#D4AF37', // Premium Royal Gold
+        card: '#1F2937',
+        border: '#374151',
         verseNumber: '#D4AF37',
-        shadow: 'rgba(0, 0, 0, 0.5)',
-        headerTitle: '#FFD700',
+        shadow: 'rgba(0, 0, 0, 0.6)',
+        headerTitle: '#D4AF37',
+        gradientStart: '#111827',
+        gradientEnd: '#0B0F19',
     }
 };
 
 export const SHADOWS = {
     light: {
-        shadowColor: '#D4AF37',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
-        elevation: 5,
+        shadowColor: '#4F46E5',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.12,
+        shadowRadius: 16,
+        elevation: 6,
     },
     dark: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.3,
-        shadowRadius: 15,
-        elevation: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.4,
+        shadowRadius: 20,
+        elevation: 10,
     }
 };
 
@@ -53,16 +57,15 @@ export const SPACING = {
 };
 
 export const BORDER_RADIUS = {
-    sm: 8,
-    md: 16,
-    lg: 24,
+    sm: 10,
+    md: 18,
+    lg: 28,
     full: 9999,
 };
 
 /* 
  * Design System Notes:
- * - Font Family: System Default (San Francisco on iOS, Roboto on Android) for native feel.
- * - Corner Radius: 12px for cards/buttons (modern rounded look).
- * - Spacing: 16px (1rem equiv) for standard padding.
- * - Shadow: Soft, diffuse shadows for depth (iOS) / Elevation for Android.
+ * - Premium aesthetics inspired by modern iOS and glassmorphism.
+ * - Deep dark mode with gold accents for a sacred feel.
+ * - Light mode with crisp vibrant indigo for a highly readable, modern feel.
  */

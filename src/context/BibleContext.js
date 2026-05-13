@@ -1,7 +1,12 @@
-import React, { createContext, useState, useEffect } from 'react';
+import * as React from 'react';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Asset } from 'expo-asset';
+import * as FileSystem from 'expo-file-system/legacy';
 import { ENGLISH_BOOKS, TELUGU_BOOKS } from '../constants/books';
 import { COLORS } from '../constants/theme';
+
+const { createContext, useState, useEffect } = React;
 
 export const BibleContext = createContext();
 
@@ -42,7 +47,6 @@ export const BibleProvider = ({ children }) => {
     }, []);
 
     const loadSettingsAndData = async () => {
-
         try {
             // Background load settings
             AsyncStorage.getItem('language').then(lang => lang && setLanguage(lang));
@@ -90,33 +94,84 @@ export const BibleProvider = ({ children }) => {
             // Background load sacred texts immediately
             console.log("Loading sacred texts...");
             try {
-                // Pre-load commentary, stories, songs, and xrefs in parallel
-                // Using individual try-catches or checks if needed, but for now simple loading
-                const [commData, kidsData, songsData, xrefData, enData, teData] = [
-                    require('../../assets/data/commentary.json'),
-                    require('../../assets/data/children_stories.json'),
-                    require('../../assets/data/songs.json'),
-                    require('../../assets/data/cross_references_full.json'),
-                    require('../../assets/data/english_bible.json'),
-                    require('../../assets/data/telugu_bible.json')
-                ];
+                // Small files can be synchronously required
+                const commData = require('../../assets/data/commentary.json');
+                const kidsData = require('../../assets/data/children_stories.json');
+                const songsData = require('../../assets/data/songs.json');
 
+                // Helper to load large files as raw assets to avoid Metro bundler freezing
+                const loadBinAsset = async (requirePath, retryCount = 0) => {
+                    try {
+                        const asset = Asset.fromModule(requirePath);
+                        if (!asset.localUri) {
+                            await asset.downloadAsync();
+                        }
+                        const uri = asset.localUri || asset.uri;
+                        
+                        let fileString;
+                        try {
+                            const response = await fetch(uri);
+                            fileString = await response.text();
+                        } catch (fetchError) {
+                            fileString = await FileSystem.readAsStringAsync(uri);
+                        }
+                        return JSON.parse(fileString);
+                    } catch (e) {
+                        console.error(`Bin Asset Load Error (Retry ${retryCount}):`, e);
+                        if (retryCount < 2) {
+                            return loadBinAsset(requirePath, retryCount + 1);
+                        }
+                        return null;
+                    }
+                };
+
+                const enData = await loadBinAsset(require('../../assets/data/english_bible.bin'));
+                
+                // Load Telugu Bible in chunks to avoid timeout on large 11MB file
+                console.log("Loading Telugu chunks...");
+                const chunks = await Promise.all([
+                    loadBinAsset(require('../../assets/data/telugu_bible_part_1.bin')),
+                    loadBinAsset(require('../../assets/data/telugu_bible_part_2.bin')),
+                    loadBinAsset(require('../../assets/data/telugu_bible_part_3.bin')),
+                    loadBinAsset(require('../../assets/data/telugu_bible_part_4.bin')),
+                    loadBinAsset(require('../../assets/data/telugu_bible_part_5.bin')),
+                    loadBinAsset(require('../../assets/data/telugu_bible_part_6.bin'))
+                ]);
+
+                if (chunks.some(c => c === null) || !enData) {
+                    Alert.alert(
+                        "Divine Connection Issue",
+                        "The sacred texts failed to load properly. Please ensure you have enough storage and restart the app.",
+                        [{ text: "OK" }]
+                    );
+                }
+                
+                const teData = {
+                    Book: chunks.reduce((acc, chunk) => [...acc, ...(chunk?.Book || [])], [])
+                };
+                
+                setBibleData({ en: enData, te: teData });
                 setCommentaryData(commData);
                 setChildrenStories(kidsData);
                 setSongs(songsData);
-                setCrossReferenceData(xrefData);
-                setBibleData({ en: enData, te: teData });
-
-                // Pre-index English cross-references for instant lookup
-                if (xrefData && xrefData.cross_references) {
-                    setCrossRefIndex(xrefData.cross_references);
+                
+                // Use the binary asset loader for the compact cross-references
+                let xrefData = null;
+                try {
+                    xrefData = await loadBinAsset(require('../../assets/data/cross_references_v3.bin'));
+                    setCrossRefIndex(xrefData);
+                    setCrossReferenceData(xrefData);
+                } catch (e) {
+                    console.warn("Failed to load compact cross references, using fallback array.", e);
+                    xrefData = require('../../assets/data/cross_references.json');
+                    setCrossReferenceData(xrefData);
                 }
-
+                
                 console.log("Load complete.");
-                setLoading(false); // Only stop loading once everything is in memory
+                setLoading(false); 
             } catch (err) {
                 console.warn("Library load failed:", err);
-                setLoading(false); // Stop loading even on failure to avoid infinite screen
+                setLoading(false); 
             }
         } catch (e) {
             console.error("Context initialization error:", e);
@@ -183,21 +238,99 @@ export const BibleProvider = ({ children }) => {
             if (teIndex !== -1) englishBookName = ENGLISH_BOOKS[teIndex];
         }
 
-        const mappedBookName = englishBookName === 'Psalms' ? 'Psalm' : englishBookName;
-        const verseKey = `${mappedBookName} ${chapter}:${verse}`;
+        // Standardize Psalms
+        if (englishBookName === 'Psalm') englishBookName = 'Psalms';
+
+        const bookIndex = ENGLISH_BOOKS.indexOf(englishBookName);
+        if (bookIndex === -1) return [];
+
+        const vNum = parseInt(verse);
+        const cNum = parseInt(chapter);
+        const verseId = (bookIndex * 1000000) + (cNum * 1000) + vNum;
+        const verseIdStr = verseId.toString();
         
-        // Use the pre-calculated index for zero-latency lookup
-        const entries = crossRefIndex[verseKey] || [];
-        return entries.map(ref => {
-            const match = ref.to.match(/^(.+)\s(\d+):(\d+)$/);
-            return match ? {
-                book: match[1],
-                chapter: parseInt(match[2]),
-                verse: parseInt(match[3]),
-                votes: ref.votes,
-                type: 'forward'
-            } : null;
-        }).filter(Boolean).sort((a, b) => (b.votes || 0) - (a.votes || 0)).slice(0, 15);
+        let finalResults = [];
+
+        // 1. Try Compact ID format (Professional Data)
+        const entriesStr = crossRefIndex && crossRefIndex[verseIdStr];
+        
+        if (entriesStr && typeof entriesStr === 'string') {
+            finalResults = entriesStr.split(',').map(item => {
+                const parts = item.split('_');
+                if (parts.length < 3) return null;
+                const bIdx = parseInt(parts[0]);
+                return {
+                    book: ENGLISH_BOOKS[bIdx],
+                    chapter: parseInt(parts[1]),
+                    verse: parseInt(parts[2]),
+                    type: 'forward'
+                };
+            }).filter(Boolean);
+        }
+        
+        // 2. Fill the gap with keyword search (up to 15 total)
+        if (finalResults.length < 15) {
+            try {
+                const currentVerseData = bibleData.en?.Book?.[bookIndex]?.Chapter?.[cNum - 1]?.Verse?.[vNum - 1];
+                if (currentVerseData && currentVerseData.Verse) {
+                    const text = currentVerseData.Verse;
+                    const keywords = text.toLowerCase()
+                        .replace(/[^\w\s]/g, '')
+                        .split(' ')
+                        .filter(w => w.length >= 4 && !['the', 'and', 'that', 'shall', 'unto', 'their', 'spoke', 'saying', 'from', 'with'].includes(w));
+                    
+                    if (keywords.length > 0) {
+                        const searchWord = keywords[0];
+                        
+                        // 1. Search Old Testament (Books 0-38) for 15 refs
+                        for (let i = 0; i <= 38; i++) {
+                            const book = bibleData.en.Book[i];
+                            if (!book) continue;
+                            for (let j = 0; j < book.Chapter.length; j++) {
+                                const ch = book.Chapter[j];
+                                if (!ch || !ch.Verse) continue;
+                                for (let vIdx = 0; vIdx < ch.Verse.length; vIdx++) {
+                                    const v = ch.Verse[vIdx];
+                                    const alreadyExists = finalResults.some(r => r.book === ENGLISH_BOOKS[i] && r.chapter === (j + 1) && r.verse === (vIdx + 1));
+                                    if (alreadyExists || (i === bookIndex && j === (cNum - 1) && vIdx === (vNum - 1))) continue;
+                                    if (v.Verse.toLowerCase().includes(searchWord)) {
+                                        finalResults.push({ book: ENGLISH_BOOKS[i], chapter: j + 1, verse: vIdx + 1, type: 'related' });
+                                        if (finalResults.length >= 15) break;
+                                    }
+                                }
+                                if (finalResults.length >= 15) break;
+                            }
+                            if (finalResults.length >= 15) break;
+                        }
+                        
+                        // 2. Search New Testament (Books 39-65) for the rest up to 30
+                        for (let i = 39; i < ENGLISH_BOOKS.length; i++) {
+                            const book = bibleData.en.Book[i];
+                            if (!book) continue;
+                            for (let j = 0; j < book.Chapter.length; j++) {
+                                const ch = book.Chapter[j];
+                                if (!ch || !ch.Verse) continue;
+                                for (let vIdx = 0; vIdx < ch.Verse.length; vIdx++) {
+                                    const v = ch.Verse[vIdx];
+                                    const alreadyExists = finalResults.some(r => r.book === ENGLISH_BOOKS[i] && r.chapter === (j + 1) && r.verse === (vIdx + 1));
+                                    if (alreadyExists || (i === bookIndex && j === (cNum - 1) && vIdx === (vNum - 1))) continue;
+                                    if (v.Verse.toLowerCase().includes(searchWord)) {
+                                        finalResults.push({ book: ENGLISH_BOOKS[i], chapter: j + 1, verse: vIdx + 1, type: 'related' });
+                                        if (finalResults.length >= 30) break;
+                                    }
+                                }
+                                if (finalResults.length >= 30) break;
+                            }
+                            if (finalResults.length >= 30) break;
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn("Fill gap fallback failed:", err);
+            }
+        }
+        
+        return finalResults;
     };
 
     const searchBible = (query, lang = language) => {
@@ -296,7 +429,6 @@ export const BibleProvider = ({ children }) => {
                 newCount = 1;
                 newDaysEngaged += 1;
             }
-            // if diff === 0, keep same count (already counted today)
         }
 
         setStreakCount(newCount);
@@ -377,6 +509,7 @@ export const BibleProvider = ({ children }) => {
             childrenStories,
             songs,
             loading,
+            bibleData,
             theme: themeMode,
             colors: COLORS[themeMode],
             toggleTheme

@@ -2,20 +2,19 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Animated, StyleSheet, Dimensions, Platform, Image } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
-const RAY_COUNT = 80;
 
 const PHOTO_GALLERY = [
-    require('../../assets/intro_gallery/bible_1.png'),
-    require('../../assets/intro_gallery/jesus_1.png'),
-    require('../../assets/intro_gallery/bible_2.png'),
-    require('../../assets/intro_gallery/jesus_2.png'),
-    require('../../assets/intro_gallery/bible_3.png'),
-    require('../../assets/intro_gallery/jesus_3.png'),
-    require('../../assets/intro_gallery/bible_4.png'),
-    require('../../assets/intro_gallery/jesus_4.png'),
-    require('../../assets/intro_gallery/bible_5.png'),
-    require('../../assets/intro_gallery/jesus_5.png'),
-    require('../../assets/intro_gallery/jesus_6.png'),
+    require('../../assets/introgallery/bible1.png'),
+    require('../../assets/introgallery/jesus1.png'),
+    require('../../assets/introgallery/bible2.png'),
+    require('../../assets/introgallery/jesus2.png'),
+    require('../../assets/introgallery/bible3.png'),
+    require('../../assets/introgallery/jesus3.png'),
+    require('../../assets/introgallery/bible4.png'),
+    require('../../assets/introgallery/jesus4.png'),
+    require('../../assets/introgallery/bible5.png'),
+    require('../../assets/introgallery/jesus5.png'),
+    require('../../assets/introgallery/jesus6.png'),
 ];
 
 const IntroAnimation = ({ onComplete }) => {
@@ -27,23 +26,8 @@ const IntroAnimation = ({ onComplete }) => {
         }))
     );
 
-    const [showTunnel, setShowTunnel] = useState(false);
-    const [rays] = useState(() =>
-        Array.from({ length: RAY_COUNT }).map(() => ({
-            progress: new Animated.Value(0),
-            angle: Math.random() * 360,
-            distance: Math.random() * 100 + 10,
-            duration: 800 + Math.random() * 1200,
-            delay: Math.random() * 1500,
-            color: ['#E50914', '#ffffff', '#D4AF37', '#9C27B0'][Math.floor(Math.random() * 4)],
-            thickness: Math.random() * 2 + 1,
-        }))
-    );
-
     const collageScale = useRef(new Animated.Value(1)).current;
     const collageOpacity = useRef(new Animated.Value(1)).current;
-    const tunnelScale = useRef(new Animated.Value(1)).current;
-    const tunnelOpacity = useRef(new Animated.Value(0)).current;
     const textScale = useRef(new Animated.Value(3)).current;
     const textOpacity = useRef(new Animated.Value(0)).current;
     const containerOpacity = useRef(new Animated.Value(1)).current;
@@ -63,54 +47,26 @@ const IntroAnimation = ({ onComplete }) => {
         // Run all reveals together but staggered
         Animated.parallel(animations).start();
 
-        // 2. Transition from Collage to Tunnel
+        // 2. Transition from Collage to Title
         setTimeout(() => {
             Animated.parallel([
                 Animated.timing(collageScale, { toValue: 1.5, duration: 1500, useNativeDriver: true }),
                 Animated.timing(collageOpacity, { toValue: 0, duration: 1000, useNativeDriver: true }),
-                Animated.timing(tunnelOpacity, { toValue: 1, duration: 1000, useNativeDriver: true }),
             ]).start(() => {
-                setShowTunnel(true);
-                startTunnelAnimation();
-            });
-        }, 3200);
-
-        const startTunnelAnimation = () => {
-            // Start Tunnel Streaks
-            rays.forEach((ray) => {
-                setTimeout(() => {
-                    Animated.loop(
-                        Animated.timing(ray.progress, {
-                            toValue: 1,
-                            duration: ray.duration,
-                            useNativeDriver: true,
-                        })
-                    ).start();
-                }, ray.delay);
-            });
-
-            // Zoom inside the tunnel
-            setTimeout(() => {
-                Animated.timing(tunnelScale, { toValue: 8, duration: 1200, useNativeDriver: true }).start();
-                Animated.timing(tunnelOpacity, { toValue: 0, duration: 800, useNativeDriver: true }).start();
-            }, 1000);
-
-            // Reveal Title
-            Animated.sequence([
-                Animated.delay(1800),
+                // Reveal Title
                 Animated.parallel([
                     Animated.timing(textScale, { toValue: 1, duration: 1000, useNativeDriver: true }),
                     Animated.timing(textOpacity, { toValue: 1, duration: 800, useNativeDriver: true })
-                ])
-            ]).start();
+                ]).start();
 
-            // End Intro
-            setTimeout(() => {
-                Animated.timing(containerOpacity, { toValue: 0, duration: 800, useNativeDriver: true }).start(() => {
-                    if (onComplete) onComplete();
-                });
-            }, 4500);
-        };
+                // End Intro
+                setTimeout(() => {
+                    Animated.timing(containerOpacity, { toValue: 0, duration: 800, useNativeDriver: true }).start(() => {
+                        if (onComplete) onComplete();
+                    });
+                }, 2500);
+            });
+        }, 3200);
     }, []);
 
     return (
@@ -145,34 +101,6 @@ const IntroAnimation = ({ onComplete }) => {
 
                 <View style={styles.vignette} />
             </Animated.View>
-
-            {/* Tunnel Layer */}
-            {showTunnel && (
-                <Animated.View style={[styles.tunnelContainer, { opacity: tunnelOpacity, transform: [{ scale: tunnelScale }] }]}>
-                    {rays.map((ray, i) => {
-                        const translateY = ray.progress.interpolate({ inputRange: [0, 1], outputRange: [ray.distance, height] });
-                        const scaleY = ray.progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.1, 50, 100] });
-                        const opacity = ray.progress.interpolate({ inputRange: [0, 0.2, 0.8, 1], outputRange: [0, 1, 1, 0] });
-
-                        return (
-                            <Animated.View
-                                key={i}
-                                style={[styles.ray, {
-                                        backgroundColor: ray.color,
-                                        width: ray.thickness,
-                                        opacity,
-                                        transform: [
-                                            { rotate: ray.angle + 'deg' },
-                                            { translateY },
-                                            { scaleY }
-                                        ]
-                                    }
-                                ]}
-                            />
-                        );
-                    })}
-                </Animated.View>
-            )}
 
             {/* Title Layer */}
             <Animated.View style={[styles.textContainer, { opacity: textOpacity, transform: [{ scale: textScale }] }]}>
@@ -255,16 +183,6 @@ const styles = StyleSheet.create({
     vignette: {
         ...StyleSheet.absoluteFillObject,
         backgroundColor: 'rgba(0,0,0,0.2)',
-    },
-    tunnelContainer: {
-        ...StyleSheet.absoluteFillObject,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    ray: {
-        position: 'absolute',
-        height: 10,
-        borderRadius: 5,
     },
     textContainer: {
         alignItems: 'center',

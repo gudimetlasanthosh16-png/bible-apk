@@ -13,36 +13,37 @@ export default function HomeScreen({ navigation }) {
     const [showScrollTop, setShowScrollTop] = useState(false);
     const listRef = useRef(null);
 
-    React.useLayoutEffect(() => {
-        navigation.setOptions({
-            headerRight: () => (
-                <View style={{ flexDirection: 'row', alignItems: 'center', paddingRight: SPACING.md }}>
-                    <TouchableOpacity
-                        onPress={() => navigation.navigate('Search')}
-                        style={[styles.hBtn, { backgroundColor: colors.highlight, marginRight: 10 }]}
-                    >
-                        <Text style={{ fontSize: 20 }}>🔍</Text>
-                    </TouchableOpacity>
+    const CustomHeader = () => (
+        <View style={[styles.customHeader, { backgroundColor: colors.headerBackground, borderBottomColor: colors.border }]}>
+            <View style={styles.headerLeft}>
+                <Text style={[styles.headerTitle, { color: colors.text }]}>Holy Bible</Text>
+            </View>
+            <View style={styles.headerRight}>
+                <TouchableOpacity
+                    onPress={() => navigation.navigate('Search')}
+                    style={[styles.hBtn, { backgroundColor: colors.highlight }]}
+                >
+                    <Text style={{ fontSize: 20 }}>🔍</Text>
+                </TouchableOpacity>
 
-                    <TouchableOpacity
-                        onPress={() => switchLanguage(language === 'en' ? 'te' : 'en')}
-                        style={[styles.hBtn, { backgroundColor: colors.highlight }]}
-                    >
-                        <Text style={[styles.hBtnText, { color: colors.accent }]}>
-                            {language === 'en' ? 'EN ⇄ TE' : 'TE ⇄ EN'}
-                        </Text>
-                    </TouchableOpacity>
+                <TouchableOpacity
+                    onPress={() => switchLanguage(language === 'en' ? 'te' : 'en')}
+                    style={[styles.hBtn, { backgroundColor: colors.highlight, marginHorizontal: 8 }]}
+                >
+                    <Text style={[styles.hBtnText, { color: colors.accent }]}>
+                        {language === 'en' ? 'EN ⇄ TE' : 'TE ⇄ EN'}
+                    </Text>
+                </TouchableOpacity>
 
-                    <TouchableOpacity
-                        onPress={() => setIsMenuVisible(true)}
-                        style={[styles.hBtn, { backgroundColor: colors.highlight, marginLeft: 10 }]}
-                    >
-                        <Text style={{ fontSize: 24, color: colors.text }}>☰</Text>
-                    </TouchableOpacity>
-                </View>
-            ),
-        });
-    }, [navigation, colors, language]);
+                <TouchableOpacity
+                    onPress={() => setIsMenuVisible(true)}
+                    style={[styles.hBtn, { backgroundColor: colors.highlight }]}
+                >
+                    <Text style={{ fontSize: 24, color: colors.text }}>☰</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
 
     const getBookName = (book) => {
         const englishIndex = ENGLISH_BOOKS.indexOf(book);
@@ -180,33 +181,43 @@ export default function HomeScreen({ navigation }) {
     const handleSongMenuClick = () => {
         setActiveTab('Songs');
         setIsMenuVisible(false);
-    }
+    };
+
+    const handleStoryMenuClick = () => {
+        setActiveTab('Children Stories');
+        setIsMenuVisible(false);
+    };
 
     return (
-        <SafeAreaView style={[styles.hContainer, { backgroundColor: colors.background }]} edges={['right', 'left']}>
+        <SafeAreaView style={[styles.hContainer, { backgroundColor: colors.background }]} edges={['right', 'left', 'top']}>
             <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.headerBackground} />
+            <CustomHeader />
 
-            <View style={[styles.hTabs, { backgroundColor: colors.headerBackground, borderBottomColor: colors.border }]}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20 }}>
-                    {['Old Testament', 'New Testament', 'Children Stories', 'Songs'].map(tab => {
-                        const title = tab === 'Old Testament' ? oldTestamentTitle :
-                            tab === 'New Testament' ? newTestamentTitle :
-                                tab === 'Children Stories' ? childrenStoriesTitle :
-                                    (language === 'en' ? 'Songs' : 'పాటలు');
+            <View style={[styles.hTabsContainer, { backgroundColor: colors.headerBackground }]}>
+                <View style={[styles.segmentedControl, { backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
+                    {['Old Testament', 'New Testament'].map(tab => {
+                        const title = tab === 'Old Testament' ? oldTestamentTitle : newTestamentTitle;
+                        const isActive = activeTab === tab;
                         return (
                             <TouchableOpacity
                                 key={tab}
-                                style={[styles.hTab, activeTab === tab && { borderBottomColor: colors.accent }]}
+                                style={[
+                                    styles.hTabPill,
+                                    { backgroundColor: isActive ? colors.accent : 'transparent' }
+                                ]}
                                 onPress={() => setActiveTab(tab)}
+                                activeOpacity={0.8}
                             >
-                                <Text style={[styles.hTabText, { color: activeTab === tab ? colors.accent : colors.secondaryText }]}>
+                                <Text style={[
+                                    styles.hTabPillText,
+                                    { color: isActive ? '#FFFFFF' : colors.secondaryText }
+                                ]}>
                                     {title}
                                 </Text>
-                                {activeTab === tab && <View style={[styles.hTabDot, { backgroundColor: colors.accent }]} />}
                             </TouchableOpacity>
                         );
                     })}
-                </ScrollView>
+                </View>
             </View>
 
             <FlatList
@@ -227,24 +238,25 @@ export default function HomeScreen({ navigation }) {
                         {/* Daily Devotional Highlight Card */}
                         {!dailyBreadRead && (
                             <TouchableOpacity
-                                style={[styles.devotionalCard, { backgroundColor: colors.card, borderColor: colors.accent }, theme === 'light' ? SHADOWS.light : SHADOWS.dark]}
+                                style={[styles.devotionalCard, { backgroundColor: colors.accent }, theme === 'light' ? SHADOWS.light : SHADOWS.dark]}
                                 onPress={() => navigation.navigate('DailyBread')}
                                 activeOpacity={0.9}
                             >
-                                <View style={[styles.devotionalAccent, { backgroundColor: colors.accent }]} />
                                 <View style={styles.devotionalInner}>
-                                    <View style={[styles.devotionalIcon, { backgroundColor: colors.highlight }]}>
-                                        <Text style={{ fontSize: 24 }}>🍞</Text>
+                                    <View style={[styles.devotionalIcon, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                                        <Text style={{ fontSize: 28 }}>☀️</Text>
                                     </View>
                                     <View style={styles.devotionalTextContainer}>
-                                        <Text style={[styles.devotionalTitle, { color: colors.accent }]}>
+                                        <Text style={[styles.devotionalTitle, { color: '#FFFFFF' }]}>
                                             {language === 'en' ? 'Daily Bread' : 'నేటి ఆహారం'}
                                         </Text>
-                                        <Text style={[styles.devotionalSub, { color: colors.text }]}>
+                                        <Text style={[styles.devotionalSub, { color: 'rgba(255,255,255,0.8)' }]}>
                                             {language === 'en' ? 'Start your day with a blessing' : 'ఈ రోజు ఆశీర్వాదంతో ప్రారంభించండి'}
                                         </Text>
                                     </View>
-                                    <Text style={{ fontSize: 20, color: colors.accent }}>→</Text>
+                                    <View style={[styles.devotionalAction, { backgroundColor: '#FFFFFF' }]}>
+                                        <Text style={{ fontSize: 16, color: colors.accent, fontWeight: 'bold' }}>READ</Text>
+                                    </View>
                                 </View>
                             </TouchableOpacity>
                         )}
@@ -253,11 +265,11 @@ export default function HomeScreen({ navigation }) {
                         <Text style={[styles.hListTitle, { color: colors.text }]}>{activeTab}</Text>
 
                         {activeTab === 'Songs' && (
-                            <View style={[styles.searchContainer, { backgroundColor: colors.highlight, borderColor: colors.accent, borderWidth: 1.5, shadowColor: colors.accent, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 }]}>
-                                <Text style={{ fontSize: 20, marginRight: 12 }}>🔍</Text>
+                            <View style={[styles.searchContainer, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 5 }]}>
+                                <Text style={{ fontSize: 22, marginRight: 12, opacity: 0.5 }}>🔍</Text>
                                 <TextInput
                                     style={[styles.searchInput, { color: colors.text }]}
-                                    placeholder={language === 'en' ? "Search hymn number or and part of lyrics..." : "కీర్తన సంఖ్య లేదా సాహిత్యం వెతకండి..."}
+                                    placeholder={language === 'en' ? "Search hymn number or lyrics..." : "కీర్తన సంఖ్య లేదా సాహిత్యం వెతకండి..."}
                                     placeholderTextColor={colors.secondaryText}
                                     value={searchQuery}
                                     onChangeText={(text) => {
@@ -267,7 +279,9 @@ export default function HomeScreen({ navigation }) {
                                 />
                                 {searchQuery.length > 0 && (
                                     <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
-                                        <Text style={{ color: colors.secondaryText, fontSize: 18, fontWeight: '900' }}>✕</Text>
+                                        <View style={{ backgroundColor: colors.highlight, borderRadius: 12, padding: 4 }}>
+                                            <Text style={{ color: colors.accent, fontSize: 14, fontWeight: '900' }}>✕</Text>
+                                        </View>
                                     </TouchableOpacity>
                                 )}
                             </View>
@@ -285,6 +299,17 @@ export default function HomeScreen({ navigation }) {
                 </TouchableOpacity>
             )}
 
+            {/* Daily Bread FAB */}
+            <TouchableOpacity
+                style={[styles.dailyBreadFAB, { backgroundColor: colors.accent }, SHADOWS.dark]}
+                onPress={() => navigation.navigate('DailyBread')}
+                activeOpacity={0.9}
+            >
+                <View style={styles.fabInner}>
+                    <Text style={{ fontSize: 28 }}>☀️</Text>
+                </View>
+            </TouchableOpacity>
+
             <Modal
                 visible={isMenuVisible}
                 transparent={true}
@@ -299,14 +324,20 @@ export default function HomeScreen({ navigation }) {
                     <View style={[styles.drawerBox, { backgroundColor: colors.card }]}>
                         <View style={styles.drawerHead}>
                             <Text style={[styles.drawerBrand, { color: colors.accent }]}>Holy Bible</Text>
-                            <TouchableOpacity onPress={() => setIsMenuVisible(false)} style={styles.drawerClose}>
-                                <Text style={{ fontSize: 20, color: colors.secondaryText }}>✕</Text>
+                            <TouchableOpacity onPress={() => setIsMenuVisible(false)} style={[styles.drawerClose, {backgroundColor: colors.highlight}]}>
+                                <Text style={{ fontSize: 16, color: colors.accent, fontWeight: 'bold' }}>✕</Text>
                             </TouchableOpacity>
                         </View>
 
                         <View style={[styles.drawerDivider, { backgroundColor: colors.border }]} />
 
                         <ScrollView showsVerticalScrollIndicator={false}>
+                            <DrawerItem
+                                icon="📖"
+                                title={language === 'en' ? 'Children Stories' : 'పిల్లల కథలు'}
+                                onPress={handleStoryMenuClick}
+                                colors={colors}
+                            />
                             <DrawerItem
                                 icon="🎵"
                                 title={language === 'en' ? 'Christian Songs' : 'కీర్తనలు'}
@@ -320,18 +351,6 @@ export default function HomeScreen({ navigation }) {
                                 colors={colors}
                             />
                             <DrawerItem
-                                icon="🖼️"
-                                title={language === 'en' ? 'Sacred Wallpapers' : 'వాల్‌పేపర్లు'}
-                                onPress={() => { setIsMenuVisible(false); navigation.navigate('Wallpaper'); }}
-                                colors={colors}
-                            />
-                            <DrawerItem
-                                icon="📚"
-                                title={language === 'en' ? 'Bible Commentaries' : 'బైబిల్ వ్యాఖ్యానాలు'}
-                                onPress={() => { setIsMenuVisible(false); navigation.navigate('CommentaryList'); }}
-                                colors={colors}
-                            />
-                            <DrawerItem
                                 icon="🤖"
                                 title={language === 'en' ? 'Holy AI' : 'AI చాట్'}
                                 onPress={() => { setIsMenuVisible(false); navigation.navigate('AIChat'); }}
@@ -340,12 +359,12 @@ export default function HomeScreen({ navigation }) {
 
                             <View style={[styles.drawerDivider, { backgroundColor: colors.border, marginVertical: 32 }]} />
 
-                            <View style={styles.drawerOption}>
+                            <View style={[styles.drawerOption, { backgroundColor: colors.highlight, padding: 16, borderRadius: 20 }]}>
                                 <View style={styles.drawerOptionLeft}>
-                                    <View style={[styles.drawerIconBox, { backgroundColor: colors.highlight }]}>
-                                        <Text style={{ fontSize: 20 }}>{theme === 'light' ? '☀️' : '🌙'}</Text>
+                                    <View style={[styles.drawerIconBox, { backgroundColor: colors.card }]}>
+                                        <Text style={{ fontSize: 22 }}>{theme === 'light' ? '☀️' : '🌙'}</Text>
                                     </View>
-                                    <View>
+                                    <View style={{ marginLeft: 16 }}>
                                         <Text style={[styles.drawerOptionText, { color: colors.text }]}>Dark Mode</Text>
                                         <Text style={[styles.drawerOptionSub, { color: colors.secondaryText }]}>Comfort for your eyes</Text>
                                     </View>
@@ -365,25 +384,43 @@ export default function HomeScreen({ navigation }) {
                     </View>
                 </TouchableOpacity>
             </Modal>
-
-
-
         </SafeAreaView >
     );
 }
 
 const DrawerItem = ({ icon, title, onPress, colors }) => (
-    <TouchableOpacity style={styles.dItem} onPress={onPress} activeOpacity={0.6}>
+    <TouchableOpacity style={styles.dItem} onPress={onPress} activeOpacity={0.7}>
         <View style={[styles.drawerIconBox, { backgroundColor: colors.highlight }]}>
-            <Text style={{ fontSize: 20 }}>{icon}</Text>
+            <Text style={{ fontSize: 22 }}>{icon}</Text>
         </View>
         <Text style={[styles.dItemText, { color: colors.text }]}>{title}</Text>
+        <Text style={{ marginLeft: 'auto', fontSize: 18, color: colors.secondaryText, opacity: 0.5 }}>›</Text>
     </TouchableOpacity>
 );
 
 const styles = StyleSheet.create({
     hContainer: {
         flex: 1,
+    },
+    customHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: SPACING.md,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+    },
+    headerLeft: {
+        flex: 1,
+    },
+    headerTitle: {
+        fontSize: 26,
+        fontWeight: '900',
+        letterSpacing: -1,
+    },
+    headerRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     hBtn: {
         width: 44,
@@ -396,57 +433,50 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: '900',
     },
-    hTabs: {
-        flexDirection: 'row',
-        height: 60,
-        borderBottomWidth: 1,
+    hTabsContainer: {
+        paddingVertical: 16,
+        paddingHorizontal: SPACING.md,
     },
-    hTab: {
-        paddingHorizontal: 16,
+    segmentedControl: {
+        flexDirection: 'row',
+        backgroundColor: 'rgba(0,0,0,0.05)', // Fallback, will be replaced with colors.highlight in component if needed, but keeping it simple
+        borderRadius: BORDER_RADIUS.full,
+        padding: 4,
+    },
+    hTabPill: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: BORDER_RADIUS.full,
         justifyContent: 'center',
         alignItems: 'center',
-        position: 'relative',
-        marginRight: 8,
     },
-    hTabText: {
-        fontSize: 14,
-        fontWeight: '900',
+    hTabPillText: {
+        fontSize: 15,
+        fontWeight: '800',
         letterSpacing: 0.5,
     },
-    hTabDot: {
-        width: 4,
-        height: 4,
-        borderRadius: 2,
-        position: 'absolute',
-        bottom: 12,
-    },
     hList: {
-        padding: 20,
-        paddingBottom: 40,
+        padding: 16,
+        paddingBottom: 60,
     },
     hListHead: {
-        padding: 20,
         paddingTop: 10,
+        paddingBottom: 20,
     },
     devotionalCard: {
-        borderRadius: 20,
-        borderWidth: 1.5,
-        marginBottom: 30,
+        borderRadius: 24,
+        marginBottom: 32,
         overflow: 'hidden',
-    },
-    devotionalAccent: {
-        height: 6,
-        width: '100%',
     },
     devotionalInner: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 20,
+        padding: 24,
     },
     devotionalIcon: {
-        width: 54,
-        height: 54,
-        borderRadius: 18,
+        width: 60,
+        height: 60,
+        borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 16,
@@ -455,30 +485,36 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     devotionalTitle: {
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: '900',
         letterSpacing: 0.5,
     },
     devotionalSub: {
         fontSize: 14,
-        fontWeight: '600',
-        marginTop: 2,
-        opacity: 0.7,
+        fontWeight: '500',
+        marginTop: 4,
+    },
+    devotionalAction: {
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 14,
     },
     hListLabel: {
-        fontSize: 11,
-        fontWeight: '900',
-        letterSpacing: 2,
-        marginBottom: 4,
+        fontSize: 12,
+        fontWeight: '800',
+        letterSpacing: 2.5,
+        marginBottom: 8,
+        textTransform: 'uppercase',
     },
     hListTitle: {
-        fontSize: 32,
+        fontSize: 36,
         fontWeight: '900',
-        letterSpacing: -1,
+        letterSpacing: -1.2,
+        marginBottom: 10,
     },
     bookCard: {
-        padding: 20,
-        borderRadius: 16,
+        padding: 22,
+        borderRadius: 20,
         borderWidth: 1,
         marginBottom: 16,
         overflow: 'hidden',
@@ -487,23 +523,23 @@ const styles = StyleSheet.create({
     cardAccent: {
         position: 'absolute',
         left: 0,
-        top: 20,
-        bottom: 20,
-        width: 3,
-        borderTopRightRadius: 3,
-        borderBottomRightRadius: 3,
+        top: '20%',
+        bottom: '20%',
+        width: 4,
+        borderTopRightRadius: 4,
+        borderBottomRightRadius: 4,
     },
     bookInner: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     bookNumBox: {
-        width: 44,
-        height: 44,
-        borderRadius: 14,
+        width: 50,
+        height: 50,
+        borderRadius: 16,
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: 16,
+        marginRight: 18,
     },
     bookNum: {
         fontSize: 18,
@@ -513,18 +549,19 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     bookTitle: {
-        fontSize: 20,
-        fontWeight: '900',
+        fontSize: 22,
+        fontWeight: '800',
         letterSpacing: -0.5,
     },
     bookSub: {
-        fontSize: 14,
+        fontSize: 15,
         fontWeight: '600',
-        marginTop: 2,
+        marginTop: 4,
     },
     bookChevron: {
-        fontSize: 22,
+        fontSize: 24,
         fontWeight: '300',
+        opacity: 0.4,
     },
     mediaCard: {
         flexDirection: 'row',
@@ -535,9 +572,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     mediaIconLarge: {
-        width: 70,
-        height: 70,
-        borderRadius: 20,
+        width: 76,
+        height: 76,
+        borderRadius: 24,
         backgroundColor: 'rgba(0,0,0,0.03)',
         alignItems: 'center',
         justifyContent: 'center',
@@ -550,60 +587,71 @@ const styles = StyleSheet.create({
         fontSize: 22,
         fontWeight: '900',
         lineHeight: 28,
-        marginBottom: 12,
+        marginBottom: 6,
     },
     mediaBadge: {
         alignSelf: 'flex-start',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 12,
     },
     mediaBadgeText: {
-        fontSize: 10,
+        fontSize: 11,
         fontWeight: '900',
         letterSpacing: 1,
     },
     drawerOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.8)',
+        backgroundColor: 'rgba(0,0,0,0.7)',
     },
     drawerBox: {
         width: '85%',
         height: '100%',
         padding: 32,
         paddingTop: 64,
+        borderTopRightRadius: 30,
+        borderBottomRightRadius: 30,
     },
     drawerHead: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 40,
+        marginBottom: 32,
     },
     drawerBrand: {
-        fontSize: 36,
+        fontSize: 32,
         fontWeight: '900',
         letterSpacing: -1.5,
+    },
+    drawerClose: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     drawerDivider: {
         height: 1,
         opacity: 0.1,
+        marginBottom: 20,
     },
     dItem: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 14,
+        marginBottom: 8,
     },
     drawerIconBox: {
-        width: 48,
-        height: 48,
-        borderRadius: 16,
+        width: 52,
+        height: 52,
+        borderRadius: 18,
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 18,
     },
     dItemText: {
         fontSize: 18,
-        fontWeight: '800',
+        fontWeight: '700',
         letterSpacing: -0.2,
     },
     drawerOption: {
@@ -620,7 +668,7 @@ const styles = StyleSheet.create({
         fontWeight: '800',
     },
     drawerOptionSub: {
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: '500',
         marginTop: 2,
     },
@@ -630,8 +678,8 @@ const styles = StyleSheet.create({
         paddingBottom: 20,
     },
     vText: {
-        fontSize: 11,
-        fontWeight: '800',
+        fontSize: 12,
+        fontWeight: '700',
         letterSpacing: 1,
         opacity: 0.5,
     },
@@ -639,16 +687,15 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 20,
-        paddingVertical: 14,
+        paddingVertical: 16,
         borderRadius: 24,
         marginTop: 20,
         marginBottom: 12,
-        borderWidth: 2,
     },
     searchInput: {
         flex: 1,
-        fontSize: 16,
-        fontWeight: '700',
+        fontSize: 17,
+        fontWeight: '600',
         padding: 0,
     },
     clearButton: {
@@ -656,7 +703,7 @@ const styles = StyleSheet.create({
     },
     scrollTopButton: {
         position: 'absolute',
-        bottom: 30,
+        bottom: 100,
         right: 20,
         width: 60,
         height: 60,
@@ -664,5 +711,24 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 1000,
+    },
+    dailyBreadFAB: {
+        position: 'absolute',
+        bottom: 30,
+        right: 20,
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+        borderWidth: 2,
+        borderColor: 'rgba(255,255,255,0.2)',
+    },
+    fabInner: {
+        width: '100%',
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
     }
 });

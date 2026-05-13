@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BibleContext } from '../context/BibleContext';
 import { useNavigation } from '@react-navigation/native';
 import * as Speech from 'expo-speech';
-import { ENGLISH_BOOKS } from '../constants/books';
+import { ENGLISH_BOOKS, TELUGU_BOOKS } from '../constants/books';
 import { SHADOWS, SPACING, BORDER_RADIUS } from '../constants/theme';
 
 const oldColorMap = {
@@ -23,7 +23,7 @@ export default function ReadingScreen({ route }) {
         language, colors, theme,
         highlights, favorites, underlines,
         toggleHighlight, toggleFavorite, toggleUnderline,
-        getBookData, TELUGU_BOOKS, crossReferenceData
+        getBookData, crossReferenceData, bibleData
     } = useContext(BibleContext);
     const navigation = useNavigation();
     const [isDualMode, setIsDualMode] = useState(false);
@@ -38,8 +38,8 @@ export default function ReadingScreen({ route }) {
 
     // Audio Settings State
     const [isSettingsVisible, setIsSettingsVisible] = useState(false);
-    const [speechRate, setSpeechRate] = useState(0.75);
-    const [speechPitch, setSpeechPitch] = useState(1.0);
+    const [speechRate, setSpeechRate] = useState(1.0); // Default natural speed
+    const [speechPitch, setSpeechPitch] = useState(0.9); // Slightly lower for a softer tone
     const [selectedVoice, setSelectedVoice] = useState(null);
 
     const [crossRefs, setCrossRefs] = useState([]);
@@ -93,7 +93,20 @@ export default function ReadingScreen({ route }) {
                         <TouchableOpacity
                             onPress={() => {
                                 const firstVerse = verses.find(v => v.id === selectedVerses[0]);
-                                setActiveVerseData(firstVerse);
+                                if (firstVerse) {
+                                    setActiveVerseData(firstVerse);
+                                    
+                                    // Fetch cross references for the first selected verse
+                                    let lookupBookName = firstVerse.bookName;
+                                    if (TELUGU_BOOKS.includes(lookupBookName)) {
+                                        const teIdx = TELUGU_BOOKS.indexOf(lookupBookName);
+                                        if (teIdx !== -1) lookupBookName = ENGLISH_BOOKS[teIdx];
+                                    }
+                                    if (lookupBookName === 'Psalms') lookupBookName = 'Psalm';
+                                    
+                                    const refs = getCrossReferences(lookupBookName, firstVerse.chapter, firstVerse.verseNumber);
+                                    setCrossRefs(refs || []);
+                                }
                                 setIsActionPanelVisible(true);
                             }}
                             style={[styles.modePill, { backgroundColor: colors.accent, marginRight: 8 }]}
@@ -171,7 +184,7 @@ export default function ReadingScreen({ route }) {
                 }
             }, 600);
         }
-    }, [bookIndex, chapterIndex, language, isDualMode]);
+    }, [bookIndex, chapterIndex, language, isDualMode, bibleData]);
 
     useEffect(() => {
         if (isAutoPlaying && speakingVerseIndex >= 0 && speakingVerseIndex < verses.length) {
@@ -205,14 +218,20 @@ export default function ReadingScreen({ route }) {
     };
 
     const speakFunc = (text, id, isSequence) => {
+        if (!text) return;
+        
         let voiceIdentifier = selectedVoice;
 
-        if (!voiceIdentifier) {
+        if (!voiceIdentifier && availableVoices.length > 0) {
             if (language === 'te') {
-                const teVoice = availableVoices.find(v => v.language.startsWith('te') && (v.name.toLowerCase().includes('female') || v.identifier.toLowerCase().includes('female')));
-                voiceIdentifier = teVoice ? teVoice.identifier : (availableVoices.find(v => v.language.startsWith('te'))?.identifier);
+                // Priority: Female -> Enhanced -> Any Telugu
+                const teVoices = availableVoices.filter(v => v.language.toLowerCase().startsWith('te'));
+                let vObj = teVoices.find(v => v.name.toLowerCase().includes('female') || v.identifier.toLowerCase().includes('female'));
+                if (!vObj) vObj = teVoices.find(v => v.quality === 'enhanced');
+                if (!vObj) vObj = teVoices[0];
+                voiceIdentifier = vObj?.identifier;
             } else {
-                const enVoices = availableVoices.filter(v => v.language.startsWith('en'));
+                const enVoices = availableVoices.filter(v => v.language.toLowerCase().startsWith('en'));
                 let vObj = enVoices.find(v => (
                     v.name.toLowerCase().includes('female') ||
                     v.identifier.toLowerCase().includes('female') ||
@@ -221,9 +240,24 @@ export default function ReadingScreen({ route }) {
                     v.identifier.toLowerCase().includes('en-us-x-sfg#female')
                 ));
 
-                if (!vObj) vObj = enVoices.find(v => v.quality === 'Enhanced' || v.quality === 'High');
+                if (!vObj) vObj = enVoices.find(v => v.quality === 'enhanced' || v.quality === 'High');
                 if (!vObj) vObj = enVoices[0];
                 voiceIdentifier = vObj?.identifier;
+            }
+        }
+
+        // Final sanity check for Telugu mode
+        if (language === 'te' && !voiceIdentifier && availableVoices.length > 0) {
+            const hasAnyTe = availableVoices.some(v => v.language.toLowerCase().startsWith('te'));
+            if (!hasAnyTe && !isSequence) {
+                Alert.alert(
+                    "Voice Not Found",
+                    "Telugu voice is not installed on this device. Please go to Settings > Accessibility > Text-to-speech > Install Voice Data.",
+                    [{ text: "OK" }]
+                );
+                setIsAutoPlaying(false);
+                setSpeakingVerseIndex(-1);
+                return;
             }
         }
 
@@ -231,32 +265,69 @@ export default function ReadingScreen({ route }) {
             rate: speechRate,
             pitch: speechPitch,
             onDone: () => {
-                if (isAutoPlaying) setSpeakingVerseIndex(prev => prev + 1);
-                else if (!isSequence) setSpeakingVerseIndex(-1);
+                if (isAutoPlaying) {
+                    setSpeakingVerseIndex(prev => prev + 1);
+                } else if (!isSequence) {
+                    setSpeakingVerseIndex(-1);
+                }
             },
-            voice: voiceIdentifier
+            onStopped: () => {
+                setSpeakingVerseIndex(-1);
+            },
+            onError: (err) => {
+                console.warn("Speech error:", err);
+                if (!isSequence) {
+                    Alert.alert("Audio Error", "Could not start audio. Please check your system volume and TTS settings.");
+                }
+                setSpeakingVerseIndex(-1);
+                setIsAutoPlaying(false);
+            },
+            voice: voiceIdentifier || undefined 
         };
 
-        Speech.speak(text, options);
+        try {
+            Speech.speak(text, options);
+        } catch (e) {
+            console.error("Speech Execution Error:", e);
+            setIsAutoPlaying(false);
+            setSpeakingVerseIndex(-1);
+        }
     };
 
     const toggleVerseOptions = async (index, item) => {
-        // If we are in multi-selection mode, toggle the selection instead of opening the panel
-        if (selectedVerses.length > 0) {
-            handleVerseToggle(item.id);
-            return;
+        try {
+            // If we are in multi-selection mode, toggle the selection instead of opening the panel
+            if (selectedVerses.length > 0) {
+                handleVerseToggle(item.id);
+                return;
+            }
+
+            await Speech.stop();
+            setIsAutoPlaying(false);
+            setSpeakingVerseIndex(-1);
+
+            setActiveVerseData({ ...item, index });
+            
+            // Normalize book name for cross-reference lookup
+            let lookupBookName = item.bookName;
+            
+            // If currently in Telugu mode, we must translate back to English for the crossRef index
+            // The item.bookName in Telugu mode is likely the Telugu string
+            if (TELUGU_BOOKS.includes(lookupBookName)) {
+                const teIdx = TELUGU_BOOKS.indexOf(lookupBookName);
+                if (teIdx !== -1) lookupBookName = ENGLISH_BOOKS[teIdx];
+            }
+            
+            // Standardize Psalms for the data index
+            if (lookupBookName === 'Psalms') lookupBookName = 'Psalm';
+
+            const refs = getCrossReferences(lookupBookName, item.chapter, item.verseNumber);
+            setCrossRefs(refs || []);
+            setIsActionPanelVisible(true);
+        } catch (error) {
+            console.warn("Verse options error:", error);
+            // Non-fatal, just prevent crash
         }
-
-        await Speech.stop();
-        setIsAutoPlaying(false);
-        setSpeakingVerseIndex(-1);
-
-        setActiveVerseData({ ...item, index });
-        
-        // Instant raw data lookup
-        const refs = getCrossReferences(item.bookName, item.chapter, item.verseNumber);
-        setCrossRefs(refs);
-        setIsActionPanelVisible(true);
     };
 
     const handleVerseToggle = (id) => {
@@ -324,6 +395,19 @@ export default function ReadingScreen({ route }) {
         } catch (error) {
             console.error(error);
         }
+    };
+
+    const copyCrossReference = async (ref, previewText) => {
+        let textToCopy = `📖 ${ref.book} ${ref.chapter}:${ref.verse}\n${'━'.repeat(20)}\n`;
+        if (previewText) textToCopy += `${previewText}\n\n`;
+        else if (ref.text) textToCopy += `${ref.text}\n\n`;
+        textToCopy += `— Shared from Holy Bible App`;
+        
+        await Clipboard.setStringAsync(textToCopy);
+        Alert.alert(
+            language === 'en' ? "Copied" : "కాపీ చేయబడింది",
+            language === 'en' ? `Reference copied` : `రిఫరెన్స్ కాపీ చేయబడింది`
+        );
     };
 
     const renderItem = ({ item, index }) => {
@@ -436,6 +520,9 @@ export default function ReadingScreen({ route }) {
                     onPress={() => setIsActionPanelVisible(false)}
                 >
                     <View style={[styles.actionPanel, { backgroundColor: colors.card }]}>
+                        <View style={{ alignItems: 'center', marginBottom: 12 }}>
+                            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, opacity: 0.5 }} />
+                        </View>
                         <View style={styles.actionHeader}>
                             <View style={[styles.vNumberBox, { backgroundColor: colors.accent }]}>
                                 <Text style={[styles.vNumberText, { color: '#FFF' }]}>
@@ -476,15 +563,13 @@ export default function ReadingScreen({ route }) {
                         )}
 
                         <View style={styles.mainActionsRow}>
-                            {selectedVerses.length === 0 && (
-                                <TouchableOpacity
-                                    style={[styles.actionBtn, { backgroundColor: favorites.includes(activeVerseData?.id) ? colors.accent : colors.highlight }]}
-                                    onPress={() => toggleFavorite(activeVerseData.id)}
-                                >
-                                    <Text style={{ fontSize: 20 }}>{favorites.includes(activeVerseData?.id) ? '⭐' : '☆'}</Text>
-                                    <Text style={[styles.actionBtnText, { color: favorites.includes(activeVerseData?.id) ? '#FFF' : colors.text }]}>Favorite</Text>
-                                </TouchableOpacity>
-                            )}
+                            <TouchableOpacity
+                                style={[styles.actionBtn, { backgroundColor: favorites.includes(activeVerseData?.id) ? colors.accent : colors.highlight }]}
+                                onPress={() => toggleFavorite(activeVerseData?.id)}
+                            >
+                                <Text style={{ fontSize: 20 }}>{favorites.includes(activeVerseData?.id) ? '⭐' : '☆'}</Text>
+                                <Text style={[styles.actionBtnText, { color: favorites.includes(activeVerseData?.id) ? '#FFF' : colors.text }]}>Favorite</Text>
+                            </TouchableOpacity>
 
                             <TouchableOpacity
                                 style={[styles.actionBtn, { backgroundColor: colors.highlight }]}
@@ -501,16 +586,33 @@ export default function ReadingScreen({ route }) {
                                 <Text style={{ fontSize: 20 }}>🔗</Text>
                                 <Text style={[styles.actionBtnText, { color: colors.text }]}>Share</Text>
                             </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.actionBtn, { backgroundColor: isAutoPlaying || speakingVerseIndex === activeVerseData?.index ? colors.accent : colors.highlight }]}
+                                onPress={() => {
+                                    if (isAutoPlaying || speakingVerseIndex === activeVerseData?.index) {
+                                        Speech.stop();
+                                        setIsAutoPlaying(false);
+                                        setSpeakingVerseIndex(-1);
+                                    } else {
+                                        setSpeakingVerseIndex(activeVerseData.index);
+                                        speakFunc(activeVerseData.primary, activeVerseData.id, false);
+                                    }
+                                }}
+                            >
+                                <Text style={{ fontSize: 20 }}>{isAutoPlaying || speakingVerseIndex === activeVerseData?.index ? '⏹️' : '🔊'}</Text>
+                                <Text style={[styles.actionBtnText, { color: isAutoPlaying || speakingVerseIndex === activeVerseData?.index ? '#FFF' : colors.text }]}>
+                                    {isAutoPlaying || speakingVerseIndex === activeVerseData?.index ? 'Stop' : 'Read'}
+                                </Text>
+                            </TouchableOpacity>
                         </View>
 
 
-                        {selectedVerses.length === 0 && (
-                            <>
-                                <View style={[styles.drawerDivider, { backgroundColor: colors.border, marginVertical: 20 }]} />
-                                <Text style={[styles.actionLabel, { color: colors.secondaryText, marginBottom: 12 }]}>CROSS REFERENCES</Text>
-                                
-                                <ScrollView 
-                                    style={{ maxHeight: 280 }} 
+                        <View style={[styles.drawerDivider, { backgroundColor: colors.border, marginVertical: 20 }]} />
+                        <Text style={[styles.actionLabel, { color: colors.secondaryText, marginBottom: 12 }]}>CROSS REFERENCES</Text>
+                        
+                        <ScrollView 
+                                    style={{ maxHeight: 450 }} 
                                     showsVerticalScrollIndicator={true}
                                     indicatorStyle={theme === 'dark' ? 'white' : 'black'}
                                 >
@@ -521,30 +623,31 @@ export default function ReadingScreen({ route }) {
                                             </Text>
                                         </View>
                                     ) : (
-                                        crossRefs && crossRefs.length > 0 ? (
-                                            crossRefs.map((ref, idx) => {
-                                                if (!ref) return null;
-                                                // Look up the verse text for preview
-                                                const targetBookName = ref.book;
-                                                const targetBookIndex = ENGLISH_BOOKS.indexOf(targetBookName);
-                                                let previewText = '';
-                                                let displayBookName = targetBookName;
+                                        crossRefs.map((ref, idx) => {
+                                            if (!ref) return null;
+                                            
+                                            // Standardize book name for index lookup
+                                            let targetBookName = ref.book;
+                                            if (targetBookName === 'Psalm') targetBookName = 'Psalms';
+                                            
+                                            const targetBookIndex = ENGLISH_BOOKS.indexOf(targetBookName);
+                                            let previewText = '';
+                                            let displayBookName = targetBookName;
+                                            
+                                            if (targetBookIndex >= 0) {
+                                                const bookData = getBookData(targetBookIndex, language);
+                                                displayBookName = language === 'te' ? TELUGU_BOOKS[targetBookIndex] : targetBookName;
                                                 
-                                                if (targetBookIndex >= 0) {
-                                                    const bookData = getBookData(targetBookIndex, language);
-                                                    displayBookName = language === 'te' ? TELUGU_BOOKS[targetBookIndex] : targetBookName;
-                                                    
-                                                    if (bookData && bookData.Chapter && bookData.Chapter[ref.chapter - 1]) {
-                                                        const verseData = bookData.Chapter[ref.chapter - 1].Verse[ref.verse - 1];
-                                                        if (verseData) {
-                                                            previewText = verseData.Verse;
-                                                        }
-                                                    }
+                                                const chapterData = bookData?.Chapter?.[ref.chapter - 1];
+                                                const verseData = chapterData?.Verse?.[ref.verse - 1];
+                                                if (verseData) {
+                                                    previewText = verseData.Verse;
                                                 }
+                                            }
 
-                                                return (
+                                            return (
+                                                <View key={idx} style={[styles.refLinkContainer, { backgroundColor: colors.highlight, borderColor: colors.border }]}>
                                                     <TouchableOpacity
-                                                        key={idx}
                                                         onPress={() => {
                                                             setIsActionPanelVisible(false);
                                                             if (targetBookIndex >= 0) {
@@ -556,42 +659,46 @@ export default function ReadingScreen({ route }) {
                                                                 });
                                                             }
                                                         }}
-                                                        style={[styles.refLinkContainer, { backgroundColor: colors.highlight, borderColor: colors.border }]}
+                                                        style={{ flex: 1 }}
                                                     >
                                                         <View style={styles.refHeaderRow}>
                                                             <View style={[styles.refIconCircle, { backgroundColor: colors.accent }]}>
                                                                 <Text style={{ fontSize: 10, color: '#FFF' }}>🔗</Text>
                                                             </View>
-                                                            <Text style={[styles.refTitleText, { color: colors.text }]}>
-                                                                {displayBookName} {ref.chapter}:{ref.verse}
-                                                            </Text>
+                                                            <View style={{ flex: 1 }}>
+                                                                <Text style={[styles.refTitleText, { color: colors.text }]}>
+                                                                    {displayBookName} {ref.chapter}:{ref.verse}
+                                                                </Text>
+                                                                <View style={[styles.typeBadge, { backgroundColor: ref.type === 'forward' ? colors.accent + '20' : colors.secondaryText + '20' }]}>
+                                                                    <Text style={[styles.typeBadgeText, { color: ref.type === 'forward' ? colors.accent : colors.secondaryText }]}>
+                                                                        {ref.type === 'forward' ? 'PROFESSIONAL' : 'RELATED'}
+                                                                    </Text>
+                                                                </View>
+                                                            </View>
                                                         </View>
                                                         {previewText ? (
-                                                            <Text style={[styles.refBodyText, { color: colors.secondaryText }]} numberOfLines={3}>
+                                                            <Text style={[styles.refBodyText, { color: colors.secondaryText }]} numberOfLines={4}>
                                                                 "{previewText}"
                                                             </Text>
                                                         ) : (
                                                             ref.text ? (
-                                                                <Text style={[styles.refBodyText, { color: colors.secondaryText }]} numberOfLines={3}>
+                                                                <Text style={[styles.refBodyText, { color: colors.secondaryText }]} numberOfLines={4}>
                                                                     "{ref.text}"
                                                                 </Text>
                                                             ) : null
                                                         )}
                                                     </TouchableOpacity>
-                                                );
-                                            })
-                                        ) : (
-                                            <View style={styles.emptyRefContainer}>
-                                                <Text style={{ fontSize: 32, marginBottom: 8, opacity: 0.5 }}>📖</Text>
-                                                <Text style={[styles.emptyRef, { color: colors.secondaryText }]}>
-                                                    No specific cross references found for this verse.
-                                                </Text>
-                                            </View>
-                                        )
+                                                    <TouchableOpacity 
+                                                        style={[styles.copyRefBtn, { backgroundColor: colors.card }]} 
+                                                        onPress={() => copyCrossReference(ref, previewText || ref.text)}
+                                                    >
+                                                        <Text style={{ fontSize: 16 }}>📋</Text>
+                                                    </TouchableOpacity>
+                                                </View>
+                                            );
+                                        })
                                     )}
                                 </ScrollView>
-                            </>
-                        )}
                     </View>
                 </TouchableOpacity>
             </Modal>
@@ -793,64 +900,77 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
     },
     settingPanel: {
-        borderTopLeftRadius: 30,
-        borderTopRightRadius: 30,
-        padding: SPACING.xl,
+        borderTopLeftRadius: 36,
+        borderTopRightRadius: 36,
+        padding: 32,
         paddingBottom: 40,
+        height: '70%',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -10 },
+        shadowOpacity: 0.15,
+        shadowRadius: 20,
+        elevation: 20,
     },
     settingHeaderBox: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 30,
+        marginBottom: 32,
     },
     settingTitle: {
-        fontSize: 24,
+        fontSize: 26,
         fontWeight: '900',
-        letterSpacing: -0.5,
     },
     sLabel: {
         fontSize: 12,
-        fontWeight: '900',
-        letterSpacing: 1.5,
+        fontWeight: '800',
+        letterSpacing: 2,
+        marginBottom: 16,
     },
     sControlRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        marginTop: 15,
+        justifyContent: 'center',
+        marginBottom: 10,
+        backgroundColor: 'rgba(0,0,0,0.02)',
+        padding: 12,
+        borderRadius: 24,
     },
     sControlButton: {
         width: 60,
         height: 60,
-        borderRadius: 20,
-        justifyContent: 'center',
+        borderRadius: 30,
         alignItems: 'center',
+        justifyContent: 'center',
     },
     sValue: {
-        fontSize: 32,
+        fontSize: 28,
         fontWeight: '900',
+        marginHorizontal: 32,
+        width: 80,
+        textAlign: 'center',
     },
     voiceList: {
-        height: 180,
+        flex: 1,
         borderWidth: 1,
-        borderRadius: 16,
-        marginTop: 15,
-        overflow: 'hidden',
+        borderRadius: 24,
+        padding: 8,
+        marginBottom: 20,
     },
     voiceOption: {
-        padding: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(0,0,0,0.05)',
+        paddingVertical: 16,
+        paddingHorizontal: 20,
+        borderRadius: 16,
+        marginBottom: 4,
     },
     voiceName: {
         fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 4,
     },
     saveBtn: {
-        marginTop: 30,
-        height: 60,
-        borderRadius: 20,
-        justifyContent: 'center',
+        paddingVertical: 20,
+        borderRadius: 24,
         alignItems: 'center',
     },
     saveBtnText: {
@@ -859,54 +979,74 @@ const styles = StyleSheet.create({
         fontWeight: '900',
     },
     actionPanel: {
-        borderTopLeftRadius: 32,
-        borderTopRightRadius: 32,
-        padding: 24,
+        borderTopLeftRadius: 36,
+        borderTopRightRadius: 36,
+        padding: 32,
         paddingBottom: 40,
+        maxHeight: '85%',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -10 },
+        shadowOpacity: 0.15,
+        shadowRadius: 20,
+        elevation: 20,
     },
     actionHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 24,
+        marginBottom: 32,
     },
     actionTitle: {
-        fontSize: 20,
+        fontSize: 24,
         fontWeight: '900',
-        marginLeft: 16,
         flex: 1,
+        marginLeft: 16,
     },
     actionLabel: {
-        fontSize: 11,
-        fontWeight: '900',
-        letterSpacing: 1.5,
+        fontSize: 12,
+        fontWeight: '800',
+        letterSpacing: 2,
         marginBottom: 16,
     },
     colorRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 24,
+        marginBottom: 32,
+        backgroundColor: 'rgba(0,0,0,0.03)',
+        padding: 16,
+        borderRadius: 24,
     },
     colorCircle: {
         width: 44,
         height: 44,
         borderRadius: 22,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
     },
     mainActionsRow: {
         flexDirection: 'row',
+        justifyContent: 'space-between',
         gap: 12,
     },
     actionBtn: {
         flex: 1,
-        height: 60,
-        borderRadius: 18,
-        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 8,
+        paddingVertical: 18,
+        borderRadius: 24,
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
     },
     actionBtnText: {
-        fontSize: 15,
-        fontWeight: '700',
+        marginTop: 8,
+        fontSize: 13,
+        fontWeight: '900',
+        letterSpacing: 0.5,
     },
     verseActionIcons: {
         flexDirection: 'row',
@@ -920,5 +1060,73 @@ const styles = StyleSheet.create({
     drawerDivider: {
         height: 1,
         opacity: 0.2,
+    },
+    refLinkContainer: {
+        borderWidth: 1,
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    refHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 6,
+    },
+    refIconCircle: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 8,
+    },
+    refTitleText: {
+        fontSize: 16,
+        fontWeight: '900',
+        marginBottom: 2,
+    },
+    typeBadge: {
+        alignSelf: 'flex-start',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 6,
+        marginTop: 2,
+    },
+    typeBadgeText: {
+        fontSize: 9,
+        fontWeight: '900',
+        letterSpacing: 0.5,
+    },
+    refBodyText: {
+        fontSize: 14,
+        fontWeight: '500',
+        lineHeight: 22,
+        fontStyle: 'italic',
+        marginTop: 8,
+    },
+    emptyRefContainer: {
+        paddingVertical: 32,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    emptyRef: {
+        fontSize: 15,
+        fontWeight: '600',
+        textAlign: 'center',
+    },
+    copyRefBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginLeft: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
     }
 });
